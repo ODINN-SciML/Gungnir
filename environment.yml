@@ -1,0 +1,34 @@
+name: oggm_env
+channels:
+  - conda-forge
+dependencies:
+  - python<3.12
+  - numpy<2.0
+  - scipy
+  - pandas
+  - shapely
+  - matplotlib
+  - Pillow
+  - netcdf4
+  - scikit-image
+  - configobj
+  - xarray
+  - pytest
+  - dask
+  - bottleneck
+  - pyproj
+  - cartopy
+  - geopandas
+  - rasterio
+  - rioxarray
+  - seaborn
+  - pytables
+  - salem
+  - motionless
+  - pip
+  - pip:
+    - joblib
+    - progressbar2
+    - git+https://github.com/OGGM/pytest-mpl
+    - git+https://github.com/OGGM/massbalance-sandbox
+    - oggm
