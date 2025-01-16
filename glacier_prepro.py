@@ -9,7 +9,7 @@ if __name__ == "__main__":
     print("Working directory:", working_dir)
     base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
 
-    cfg.initialize()    
+    cfg.initialize()
 
     # Settings
     cfg.PATHS['working_dir'] = working_dir
@@ -31,6 +31,7 @@ if __name__ == "__main__":
         'RGI60-08.00087',  # Jostedalsbreen, Norway
         'RGI60-08.00147',  # Folgefonna, Norway
         'RGI60-08.00203',  # Hardangerjøkulen, Norway
+        'RGI60-11.03638',  # Argentière, France
     ]
 
     # Now we initialize the glacier directories
@@ -64,5 +65,5 @@ if __name__ == "__main__":
     # Verify that glaciers have no missing data
     task_log = global_tasks.compile_task_log(gdirs, 
                                             task_names=["gridded_attributes", "velocity_to_gdir", "thickness_to_gdir"])
-                                                        
+
     task_log.to_csv(os.path.join(working_dir, "task_log.csv"))
