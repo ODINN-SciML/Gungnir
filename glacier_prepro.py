@@ -40,7 +40,7 @@ if __name__ == "__main__":
                                               from_prepro_level=2)
 
     # We execute the entity tasks
-    list_tasks = [tasks.gridded_attributes, 
+    list_tasks = [tasks.gridded_attributes,
                   tasks.glacier_masks,
                   bedtopo.add_consensus_thickness,
                   millan22.thickness_to_gdir,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     rgi_paths = {}
     for gdir in gdirs: # TODO: change to parallel processing by creating an entity task
         # We store all the paths for each RGI ID to be retrieved later on in ODINN
-        rgi_paths[gdir.rgi_id] = gdir.dir 
+        rgi_paths[gdir.rgi_id] = gdir.dir.replace(working_dir+'/', '')
         process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily') 
 
         print("dem path: " , gdir.get_filepath("dem"))
