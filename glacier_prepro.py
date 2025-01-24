@@ -32,6 +32,8 @@ if __name__ == "__main__":
         'RGI60-08.00147',  # Folgefonna, Norway
         'RGI60-08.00203',  # Hardangerjøkulen, Norway
         'RGI60-11.03638',  # Argentière, France
+        'RGI60-07.00042',  # Bodleybreen, Svalbard
+        'RGI60-07.00065',  # Rosenthalbreen, Svalbard
     ]
 
     # Now we initialize the glacier directories
