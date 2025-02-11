@@ -27,7 +27,6 @@ def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
 
     if working_dir == "OGGM_cluster":
         working_dir = utils.gettempdir('ODINN_prepro')
-    # working_dir = "/Users/sapienza/.ODINN/ODINN_prepro"
     print("Working directory:", working_dir)
     
     cfg.initialize()
