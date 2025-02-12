@@ -4,7 +4,17 @@ from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
 
-from utils import read_glaciers_names
+def read_glaciers_names(file):
+
+    glaciers = []
+        
+    with open(file, "r") as f:
+        for line in f:
+            line = line.split(";")
+            glaciers.append(line[0])
+
+    return glaciers
+
 
 def preprocessing_file(file, working_dir="OGGM_cluster"):
     """
@@ -14,6 +24,7 @@ def preprocessing_file(file, working_dir="OGGM_cluster"):
     rgi_ids = read_glaciers_names(file)
     preprocessing_glaciers(rgi_ids, working_dir=working_dir)
     
+
 
 def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
     """

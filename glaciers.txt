@@ -11,4 +11,4 @@ RGI60-11.02097;  # Kesselwandferner, Alps
 RGI60-11.02346;  # Taschachferner, Alps
 RGI60-11.03638;  # Argentière, France
 RGI60-11.00695;  # Brenva, Italy
-RGI60-11.00773;  # Bossons, France
+RGI60-11.03646;  # Bossons, France
