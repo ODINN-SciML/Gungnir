@@ -1,14 +1,45 @@
+import sys
 from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
 
-if __name__ == "__main__":
+def read_glaciers_names(file):
 
-    working_dir = utils.gettempdir('ODINN_prepro')
-    print("Working directory:", working_dir)
+    glaciers = []
+        
+    with open(file, "r") as f:
+        for line in f:
+            line = line.split(";")
+            glaciers.append(line[0])
+
+    return glaciers
+
+
+def preprocessing_file(file, working_dir="OGGM_cluster"):
+    """
+    Preprocess glaciers directly from file
+    """
+
+    rgi_ids = read_glaciers_names(file)
+    preprocessing_glaciers(rgi_ids, working_dir=working_dir)
+    
+
+
+def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
+    """
+    Preprocessing of glaciers from a list of glaciers
+
+    Arguments: 
+        - rgi_ids: List of glaciers and/or regions to process. E.g., rgi_ids = ['RGI60-11.00897', 'RGI60-11.01270']
+    """
+
     base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
 
+    if working_dir == "OGGM_cluster":
+        working_dir = utils.gettempdir('ODINN_prepro')
+    print("Working directory:", working_dir)
+    
     cfg.initialize()
 
     # Settings
@@ -18,23 +49,6 @@ if __name__ == "__main__":
     cfg.PARAMS['hydro_month_nh'] = 1
     cfg.PARAMS['dl_verify'] = False
     cfg.PARAMS['continue_on_error'] = True
-
-    # List of glaciers and/or regions to process
-    rgi_ids = [
-        'RGI60-11.00897',  # Hintereisferner, Alps
-        'RGI60-11.01270',  # Gepatschferner, Alps
-        'RGI60-11.01450',  # Pasterze, Alps
-        'RGI60-11.01733',  # Vernagtferner, Alps
-        'RGI60-11.02097',  # Kesselwandferner, Alps
-        'RGI60-11.02346',  # Taschachferner, Alps
-        'RGI60-08.00038',  # Nigardsbreen, Norway
-        'RGI60-08.00087',  # Jostedalsbreen, Norway
-        'RGI60-08.00147',  # Folgefonna, Norway
-        'RGI60-08.00203',  # Hardangerjøkulen, Norway
-        'RGI60-11.03638',  # Argentière, France
-        'RGI60-07.00042',  # Bodleybreen, Svalbard
-        'RGI60-07.00065',  # Rosenthalbreen, Svalbard
-    ]
 
     # Now we initialize the glacier directories
     gdirs = workflow.init_glacier_directories(rgi_ids, 
@@ -69,3 +83,19 @@ if __name__ == "__main__":
                                             task_names=["gridded_attributes", "velocity_to_gdir", "thickness_to_gdir"])
 
     task_log.to_csv(os.path.join(working_dir, "task_log.csv"))
+
+    return None
+
+
+if __name__ == "__main__":
+
+    print(sys.argv)
+    glacier_file = sys.argv[1]
+    
+    if len(sys.argv) == 2:
+        preprocessing_file(glacier_file)
+    else:
+        working_dir = sys.argv[2]
+        preprocessing_file(glacier_file, working_dir=working_dir)
+    
+    

@@ -1,34 +1,36 @@
-name: oggm_env
+name: oggm_env_gungnir
 channels:
   - conda-forge
 dependencies:
-  - python<3.12
-  - numpy<2.0
-  - scipy
-  - pandas
-  - shapely
-  - matplotlib
-  - Pillow
-  - netcdf4
-  - scikit-image
-  - configobj
-  - xarray
-  - pytest
-  - dask
   - bottleneck
-  - pyproj
   - cartopy
+  - configobj
+  - dask
   - geopandas
+  - ipykernel
+  - matplotlib
+  - motionless
+  - netcdf4
+  - numpy<2.0
+  - pandas
+  - Pillow
+  - pip
+  - pyproj
+  - pytables
+  - pytest
+  - python<3.12
   - rasterio
   - rioxarray
-  - seaborn
-  - pytables
   - salem
-  - motionless
-  - pip
+  - scikit-image
+  - scipy
+  - seaborn
+  - shapely
+  - xarray
   - pip:
     - joblib
     - progressbar2
     - git+https://github.com/OGGM/pytest-mpl
     - git+https://github.com/OGGM/massbalance-sandbox
     - oggm
+    - -e ./gungnir
