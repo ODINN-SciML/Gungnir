@@ -7,11 +7,13 @@ import json, os
 def read_glaciers_names(file):
 
     glaciers = []
-        
+
     with open(file, "r") as f:
         for line in f:
             line = line.split(";")
-            glaciers.append(line[0])
+            if len(line)==2:
+                rgiid = line[0].split('#')[0].replace(' ', '') # Handle commented lines
+                if rgiid!='': glaciers.append(rgiid)
 
     return glaciers
 
@@ -23,14 +25,14 @@ def preprocessing_file(file, working_dir="OGGM_cluster"):
 
     rgi_ids = read_glaciers_names(file)
     preprocessing_glaciers(rgi_ids, working_dir=working_dir)
-    
+
 
 
 def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
     """
     Preprocessing of glaciers from a list of glaciers
 
-    Arguments: 
+    Arguments:
         - rgi_ids: List of glaciers and/or regions to process. E.g., rgi_ids = ['RGI60-11.00897', 'RGI60-11.01270']
     """
 
@@ -39,7 +41,7 @@ def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
     if working_dir == "OGGM_cluster":
         working_dir = utils.gettempdir('ODINN_prepro')
     print("Working directory:", working_dir)
-    
+
     cfg.initialize()
 
     # Settings
@@ -51,7 +53,7 @@ def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
     cfg.PARAMS['continue_on_error'] = True
 
     # Now we initialize the glacier directories
-    gdirs = workflow.init_glacier_directories(rgi_ids, 
+    gdirs = workflow.init_glacier_directories(rgi_ids,
                                               prepro_base_url=base_url,
                                               from_prepro_level=2)
 
@@ -71,7 +73,7 @@ def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
     for gdir in gdirs: # TODO: change to parallel processing by creating an entity task
         # We store all the paths for each RGI ID to be retrieved later on in ODINN
         rgi_paths[gdir.rgi_id] = gdir.dir.replace(working_dir+'/', '')
-        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily') 
+        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
 
         print("dem path: " , gdir.get_filepath("dem"))
 
@@ -79,7 +81,7 @@ def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
         json.dump(rgi_paths, f)
 
     # Verify that glaciers have no missing data
-    task_log = global_tasks.compile_task_log(gdirs, 
+    task_log = global_tasks.compile_task_log(gdirs,
                                             task_names=["gridded_attributes", "velocity_to_gdir", "thickness_to_gdir"])
 
     task_log.to_csv(os.path.join(working_dir, "task_log.csv"))
@@ -91,11 +93,9 @@ if __name__ == "__main__":
 
     print(sys.argv)
     glacier_file = sys.argv[1]
-    
+
     if len(sys.argv) == 2:
         preprocessing_file(glacier_file)
     else:
         working_dir = sys.argv[2]
         preprocessing_file(glacier_file, working_dir=working_dir)
-    
-    
