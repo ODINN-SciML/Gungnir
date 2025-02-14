@@ -1,10 +1,9 @@
 import os
 import tempfile
-import shutil
 import hashlib
 import glob
 import json
-from gungnir import preprocessing_glaciers
+from gungnir import preprocessing_glaciers, emptyDir
 
 
 def test_hash():
@@ -18,9 +17,8 @@ def test_hash():
 
     folderName = 'Gungnir_tests'
     working_dir = os.path.join(tempfile.gettempdir(), folderName)
+    emptyDir(working_dir)
 
-    if os.path.isdir(working_dir): shutil.rmtree(working_dir)
-    os.makedirs(working_dir)
     rgi_ids = ["RGI60-11.03646"]
     preprocessing_glaciers(rgi_ids, working_dir=working_dir)
 

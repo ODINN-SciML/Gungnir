@@ -3,22 +3,11 @@ from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
+from gungnir.utils import read_glaciers_names
 
-def read_glaciers_names(file):
+_default_working_dir = utils.gettempdir('ODINN_prepro')
 
-    glaciers = []
-
-    with open(file, "r") as f:
-        for line in f:
-            line = line.split(";")
-            if len(line)==2:
-                rgiid = line[0].split('#')[0].replace(' ', '') # Handle commented lines
-                if rgiid!='': glaciers.append(rgiid)
-
-    return glaciers
-
-
-def preprocessing_file(file, working_dir="OGGM_cluster"):
+def preprocessing_file(file, working_dir=_default_working_dir):
     """
     Preprocess glaciers directly from file
     """
@@ -26,9 +15,7 @@ def preprocessing_file(file, working_dir="OGGM_cluster"):
     rgi_ids = read_glaciers_names(file)
     preprocessing_glaciers(rgi_ids, working_dir=working_dir)
 
-
-
-def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
+def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
     """
     Preprocessing of glaciers from a list of glaciers
 
@@ -38,8 +25,6 @@ def preprocessing_glaciers(rgi_ids, working_dir="OGGM_cluster"):
 
     base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
 
-    if working_dir == "OGGM_cluster":
-        working_dir = utils.gettempdir('ODINN_prepro')
     print("Working directory:", working_dir)
 
     cfg.initialize()
