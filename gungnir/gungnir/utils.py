@@ -1,8 +1,7 @@
 import shutil
 import os
 
-def read_glaciers_names(file):
-
+def read_glacier_names(file):
     glaciers = []
 
     with open(file, "r") as f:

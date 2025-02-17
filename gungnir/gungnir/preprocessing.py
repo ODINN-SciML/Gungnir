@@ -3,7 +3,7 @@ from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
-from gungnir.utils import read_glaciers_names
+from gungnir.utils import read_glacier_names
 
 _default_working_dir = utils.gettempdir('ODINN_prepro')
 
@@ -12,7 +12,7 @@ def preprocessing_file(file, working_dir=_default_working_dir):
     Preprocess glaciers directly from file
     """
 
-    rgi_ids = read_glaciers_names(file)
+    rgi_ids = read_glacier_names(file)
     preprocessing_glaciers(rgi_ids, working_dir=working_dir)
 
 def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
@@ -70,8 +70,6 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
                                             task_names=["gridded_attributes", "velocity_to_gdir", "thickness_to_gdir"])
 
     task_log.to_csv(os.path.join(working_dir, "task_log.csv"))
-
-    return None
 
 
 if __name__ == "__main__":
