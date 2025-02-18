@@ -1,13 +1,15 @@
+[![Build Status](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml?query=branch%3Amain)
+
 <img src="https://github.com/ODINN-SciML/Gungnir/blob/main/data/gungnir_logo.png" width="250">
 
-Preprocessing of topographical and climate data for [ODINN.jl](https://github.com/ODINN-SciML/ODINN.jl) using [OGGM](https://github.com/OGGM/oggm). 
+Preprocessing of topographical and climate data for [ODINN.jl](https://github.com/ODINN-SciML/ODINN.jl) using [OGGM](https://github.com/OGGM/oggm).
 
 Gungnir uses OGGM to generate all necessary files for the initial state and climate forcings to run simulations with ODINN.jl. Before running any simulations for specific glaciers with ODINN.jl, Gungnir needs to initialize those glaciers. We will progressively initialize glacier regions and store them in a server so they are readily available to all users. If you find that some glaciers or a region is missing, please contact us!
 
-## Installation 
+## Installation
 
 All the notebooks inside this notebook can be executed after properly setting the environment. The `environment.yml` file can be used to
-install all the required dependencies. Beside some standard Python dependencies, the `environment.yml` file include the installation of the module `gungnir` (included in this repository). The package `gungnir` includes all the code required to download the glacier data using OGGM. 
+install all the required dependencies. Beside some standard Python dependencies, the `environment.yml` file include the installation of the module `gungnir` (included in this repository). The package `gungnir` includes all the code required to download the glacier data using OGGM.
 
 In order to install the environment, you can use conda or mamba (see [Managing Environments](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for more information) with `conda env create -f environment.yml`. Once the environment is created, you can create the associated iPython kernel with 
 ```
