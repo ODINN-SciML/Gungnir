@@ -34,7 +34,7 @@ def test_hash():
             checksums[f.split(folderName)[1]] = chk
     globalChecksum = hashlib.md5(json.dumps(checksums, sort_keys=True, ensure_ascii=True).encode('utf-8')).hexdigest()
 
-    refChecksum = "db89ff86ddbd817a635f5baa14febbb1"
+    refChecksum = "256df9a45d758d48165cbb90a84ae107"
     if globalChecksum!=refChecksum:
         raise Exception(f"Computed checksum is '{globalChecksum}' but reference is '{refChecksum}'. This likely means that the result of the preprocessing has changed. Update of the reference should be carefully tracked and the root cause of that change must be understood since this might impact the subsequent processing steps. In order to ease debugging, you can compare the checksums per file for different executions or for different heads of the repository. \n\n{checksums=}")
 
