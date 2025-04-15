@@ -4,11 +4,11 @@ RGI60-08.00038;  # Nigardsbreen, Norway
 RGI60-08.00087;  # Jostedalsbreen, Norway
 RGI60-08.00147;  # Folgefonna, Norway
 RGI60-08.00203;  # Hardangerjøkulen, Norway
-RGI60-11.01270;  # Gepatschferner, Alps
-RGI60-11.01450;  # Pasterze, Alps
-RGI60-11.01733;  # Vernagtferner, Alps
-RGI60-11.02097;  # Kesselwandferner, Alps
-RGI60-11.02346;  # Taschachferner, Alps
+RGI60-11.01270;  # Grindelwald, Alps
+RGI60-11.01450;  # Aletsch, Alps
+RGI60-11.01733;  # Hangend, Alps
+RGI60-11.02097;  # [no name], Alps
+RGI60-11.02346;  # [no name], Alps
 RGI60-11.03638;  # Argentière, France
-RGI60-11.00695;  # Brenva, Italy
+RGI60-11.00695;  # Glatschiu dil segnas, Italy
 RGI60-11.03646;  # Bossons, France
