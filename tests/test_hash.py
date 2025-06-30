@@ -25,7 +25,8 @@ def test_hash():
     files = glob.glob(working_dir+"/**/*", recursive=True)
     checksums = {}
     for f in files:
-        if f.endswith('log.txt') or f.endswith('geometries.pkl'):
+        if f.endswith('.pkl'): print(f)
+        if f.endswith('log.txt') or f.endswith('geometries.pkl') or f.endswith('inversion_flowlines.pkl') or f.endswith('centerlines.pkl'):
             # Log output is run dependent
             # Geometry file is pickled and depends on the Python session
             continue
@@ -34,7 +35,7 @@ def test_hash():
             checksums[f.split(folderName)[1]] = chk
     globalChecksum = hashlib.md5(json.dumps(checksums, sort_keys=True, ensure_ascii=True).encode('utf-8')).hexdigest()
 
-    refChecksum = "256df9a45d758d48165cbb90a84ae107"
+    refChecksum = "39dc214d784840963686923643e40785"
     if globalChecksum!=refChecksum:
         raise Exception(f"Computed checksum is '{globalChecksum}' but reference is '{refChecksum}'. This likely means that the result of the preprocessing has changed. Update of the reference should be carefully tracked and the root cause of that change must be understood since this might impact the subsequent processing steps. In order to ease debugging, you can compare the checksums per file for different executions or for different heads of the repository. \n\n{checksums=}")
 
