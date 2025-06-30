@@ -45,6 +45,8 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
     # We execute the entity tasks
     list_tasks = [tasks.gridded_attributes,
                   tasks.glacier_masks,
+                  tasks.compute_centerlines,
+                  tasks.initialize_flowlines,
                   bedtopo.add_consensus_thickness,
                   millan22.thickness_to_gdir,
                   millan22.velocity_to_gdir,
