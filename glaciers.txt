@@ -1,14 +1,82 @@
-RGI60-07.00042;  # Bodleybreen, Svalbard
-RGI60-07.00065;  # Rosenthalbreen, Svalbard
-RGI60-08.00038;  # Nigardsbreen, Norway
-RGI60-08.00087;  # Jostedalsbreen, Norway
-RGI60-08.00147;  # Folgefonna, Norway
-RGI60-08.00203;  # Hardangerjøkulen, Norway
-RGI60-11.01270;  # Grindelwald, Alps
-RGI60-11.01450;  # Aletsch, Alps
-RGI60-11.01733;  # Hangend, Alps
-RGI60-11.02097;  # [no name], Alps
-RGI60-11.02346;  # [no name], Alps
-RGI60-11.03638;  # Argentière, France
-RGI60-11.00695;  # Glatschiu dil segnas, Italy
-RGI60-11.03646;  # Bossons, France
+# Svalbard
+RGI60-07.00042;  # Bodleybreen
+RGI60-07.00065;  # Rosenthalbreen
+RGI60-07.00274;  # Edvardbreen
+RGI60-07.01323;  # Biskayerfonna
+RGI60-07.01193;  # Skaugumbreen
+
+# Norway
+RGI60-08.00038;  # Nigardsbreen
+RGI60-08.00087;  # Jostedalsbreen
+RGI60-08.00147;  # Folgefonna
+RGI60-08.00203;  # Hardangerjøkulen
+
+# Sweden
+RGI60-08.00213;  # Storglaciaeren
+
+# Italy
+RGI60-11.02097;  # [no name] -> very small glacier near the Swiss border close to "Punta dal Dügüral"
+RGI60-11.02346;  # [no name] -> very small glacier near the Swiss border close to "Pizzo del Ferro Orientale"
+RGI60-11.00695;  # Glatschiu dil segnas
+RGI60-11.03005;  # Miage
+RGI60-11.03001;  # Brenva
+
+# France, Mont Blanc
+RGI60-11.03643;  # Mer de Glace/Geant
+RGI60-11.03638;  # Argentière
+RGI60-11.03646;  # Bossons
+RGI60-11.03647;  # Taconnaz
+RGI60-11.03296;  # Tricot
+RGI60-11.03438;  # Tete Rousse
+RGI60-11.03648;  # Bionnassay
+RGI60-11.03601;  # Armancette
+RGI60-11.03650;  # Covagnet
+RGI60-11.03276;  # Miage 1
+RGI60-11.03388;  # Miage 2
+RGI60-11.03579;  # Miage 3
+RGI60-11.03649;  # Miage 4
+RGI60-11.03651;  # Tré-la-Tête
+RGI60-11.03339;  # Glaciers
+# France, Belledonne
+RGI60-11.03674;  # Saint Sorlin
+# France, Ecrins
+RGI60-11.03677;  # Meije
+RGI60-11.03684;  # Blanc
+# France, Pyrénées
+RGI60-11.03232;  # Ossoue
+RGI60-11.03208;  # Aneto
+
+# Switzerland
+RGI60-11.01270;  # Grindelwald
+RGI60-11.01450;  # Aletsch
+RGI60-11.01733;  # Hangend
+RGI60-11.01328;  # Unteraar
+RGI60-11.01238;  # Rhone
+
+# Austria
+RGI60-11.00897;  # Hintereisferner
+RGI60-11.00787;  # Kesselwandferner
+
+# Canada
+RGI60-04.04351;  # Glacier on SE Baffin Island
+RGI60-02.05098;  # Peyto
+RGI60-04.07051;  # Glacier on Bylot Island
+RGI60-03.04207;  # Glacier on N Ellesmere Island
+RGI60-03.03533;  # Glacier on N Ellesmere Island
+
+# New Zealand
+RGI60-18.02342;  # Tasman
+
+# US, Alaska
+RGI60-01.02170;  # Esetuk
+RGI60-01.01104;  # Lemon Creek
+RGI60-01.09162;  # Wolverine
+RGI60-01.00570;  # Gulkana
+RGI60-01.17316;  # Twaharpies
+RGI60-01.22174;  # Buckskin
+
+# Pakistan
+RGI60-14.07309;  # West Ching Kang
+
+# China
+RGI60-15.10261;  # Cn5O194E0004

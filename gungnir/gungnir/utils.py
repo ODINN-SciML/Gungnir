@@ -7,6 +7,7 @@ def read_glacier_names(file):
 
     with open(file, "r") as f:
         for line in f:
+            if line[0]=='#' or line=='': continue
             line = line.split(";")
             if len(line)==2:
                 rgiid = line[0].split('#')[0].replace(' ', '') # Handle commented lines
