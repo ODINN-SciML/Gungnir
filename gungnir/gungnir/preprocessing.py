@@ -3,7 +3,7 @@ from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
-from gungnir.utils import read_glacier_names, remove_id_from_string
+from gungnir.utils import read_glacier_names, remove_id_from_string, flowlines_to_shp
 
 _default_working_dir = utils.gettempdir('ODINN_prepro')
 
@@ -54,6 +54,9 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
 
     for task in list_tasks:
         workflow.execute_entity_task(task, gdirs)
+
+    for gdir in gdirs:
+        flowlines_to_shp(gdir)
 
     ### Then we retrieve all the necessary climate data ###
     rgi_paths = {}
