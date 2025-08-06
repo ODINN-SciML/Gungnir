@@ -1,6 +1,7 @@
 import shutil
 import os
 import re
+from oggm.utils import write_centerlines_to_shape
 
 def read_glacier_names(file):
     glaciers = []
@@ -26,3 +27,8 @@ def remove_id_from_string(input_string):
     result = re.sub(pattern, '', input_string)
     # Remove any extra spaces introduced and return the cleaned string
     return result.strip()
+
+def flowlines_to_shp(gdir, to_tar=False, flowlines_output=True):
+    path = os.path.join(gdir.dir, "glacier_flowlines.shp")
+
+    write_centerlines_to_shape([gdir], flowlines_output=True, path=path, to_tar=False)
