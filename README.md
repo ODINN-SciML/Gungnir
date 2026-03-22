@@ -1,93 +1,92 @@
-# Gungnir
-Preprocessing of topographical and climate data for ODINN.jl using OGGM
+[![Build Status](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml?query=branch%3Amain)
+
+<img src="https://github.com/ODINN-SciML/Gungnir/blob/main/data/gungnir_logo.png" width="250">
+
+Preprocessing of topographical and climate data for [ODINN.jl](https://github.com/ODINN-SciML/ODINN.jl) using [OGGM](https://github.com/OGGM/oggm).
+
+Gungnir uses OGGM to generate all necessary files for the initial state and climate forcings to run simulations with ODINN.jl. Before running any simulations for specific glaciers with ODINN.jl, Gungnir needs to initialize those glaciers. We will progressively initialize glacier regions and store them in a server so they are readily available to all users. If you find that some glaciers or a region is missing, please contact us!
+
+## Installation
+
+All the notebooks inside this notebook can be executed after properly setting the environment. The `environment.yml` file can be used to
+install all the required dependencies. Beside some standard Python dependencies, the `environment.yml` file include the installation of the module `gungnir` (included in this repository). The package `gungnir` includes all the code required to download the glacier data using OGGM.
+
+In order to install the environment, you can use conda or mamba (see [Managing Environments](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for more information) with `conda env create -f environment.yml`. Once the environment is created, you can create the associated iPython kernel with 
+```
+python -m ipykernel install --user --name oggm_env_gungnir --display-name "IPython - Gungnir"
+```
+This will allow you to execute this environment directly from Jupyter notebooks. 
+
+Alternatively, we included a `Makefile` that creates the conda environment and installs the associated iPython kernel so this environment can be accessible though Jupyter notebooks all at once. In order to use the Makefile, you need to open a terminal where the repository is located and enter
+```
+make env
+```
+
+Alternatively, if you just want to install the `gungnir` module, you can clone this repository and do
+```
+pip install gungnir
+```
+or
+```
+pip install -e gungnir
+```
+if you are working in developer mode. 
+
+## Usage 
+
+We included an example notebook of how to retrieve data using OGGM data in `notebooks/Example.ipynb`
+
+You can also use Gungnir directly from the terminal. If you are using the remote OGGM cluster as working directory, in a new terminal after doing `conda activate oggm_env_gungnir`, proceed with
+```bash
+python gungnir/gungnir/preprocessing.py glaciers.txt
+```
+This will retrieve all the data of the glaciers included in `glaciers.txt`. If instead you are working in a local directory, simply do 
+```bash
+python gungnir/gungnir/preprocessing.py glaciers.txt <working-dir>
+```
 
 ## Climate Sources
 
-Gungnir prepares climate files compatible with Sleipnir for both sources:
+Gungnir prepares climate files compatible with Sleipnir for two independent sources:
 
-- W5E5: default OGGM daily climate file.
-- ERA5: fully independent ERA5 CDS daily climate file.
+- **W5E5**: default OGGM daily climate file.
+- **ERA5**: fully independent ERA5-Land climate file downloaded from the [CDS API](https://cds.climate.copernicus.eu/).
 
-The script is intentionally argument-free and always builds both W5E5 and ERA5.
+Both sources are always generated for each glacier, allowing selection via Sleipnir's `climate_data_source` parameter.
 
 ## ERA5 Download Modes
 
-Gungnir provides two ERA5 download strategies:
-
-### Monthly (Default - Lightweight)
-By default, Gungnir downloads **monthly averaged** ERA5-Land data from CDS, then processes it to daily resolution for Sleipnir. This is significantly more lightweight in terms of data download volume and processing requirements.
+### Monthly (Default — Lightweight)
+By default, Gungnir downloads **monthly averaged** ERA5-Land data from CDS, then processes it to daily resolution. This is significantly more lightweight in terms of data volume.
 
 Monthly data is:
-- **Downloaded**: From `reanalysis-era5-land-monthly-means` product
-- **Processed**: Forward-filled to daily (each month's values span all days in that month)
-- **Fluxes**: Divided by days in month to compute daily averages (e.g., 1000 J/m²/month → ~33 J/m²/day for a 30-day month)
+- **Downloaded**: From `reanalysis-era5-land-monthly-means`
+- **Processed**: Forward-filled to daily; fluxes divided by days/month for daily averages
 
-### Daily (Optional - High Resolution)
-For future high-temporal-resolution work, you can enable **hourly → daily aggregation** by setting `use_daily=True` in `ensure_era5_file_for_gdir()`.
+### Daily (Optional — High Resolution)
+To enable hourly→daily aggregation, set `use_daily=True` in `ensure_era5_file_for_gdir()` inside `preprocessing.py`:
 
-Hourly data is:
-- **Downloaded**: From `reanalysis-era5-land` product (24 timesteps/day)
-- **Processed**: Aggregated to daily via resampling (mean for temps/albedo, sum for fluxes)
-- **Heavier**: ~7–8x more data than monthly mode
+```python
+era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
+```
+
+Hourly data is downloaded from `reanalysis-era5-land` (24 timesteps/day) and resampled to daily.
 
 ## ERA5 Output
 
-Gungnir creates: `climate_historical_daily_ERA5.nc`
-
-This file contains **daily** time series for:
+Gungnir creates `climate_historical_daily_ERA5.nc` with daily time series for:
 - `temp` — 2m temperature (°C)
 - `prcp` — total precipitation (m)
-- `gradient` — temperature lapse rate (K/m, constant -0.0065)
+- `gradient` — temperature lapse rate (K/m, constant −0.0065)
 - `fal` — forecast albedo (0–1)
 - `slhf` — surface latent heat flux (J/m²)
 - `sshf` — surface sensible heat flux (J/m²)
 - `ssrd` — surface solar radiation downwards (J/m²)
 - `str` — surface net thermal radiation (J/m²)
 
-All ERA5 fields are downloaded from CDS and processed independently. ERA5 files are pure ERA5 and do not mix with W5E5 fields.
-
-Metadata includes:
-- `ref_hgt`: Reference altitude derived from geopotential
-- `ref_pix_lat`, `ref_pix_lon`: Glacier center coordinates
-- `hydro_yr_0`, `hydro_yr_1`: Year range of available data (1950–present)
-- `climate_source`: "ERA5 CDS"
-
-## Code Structure
-
-The refactored `era5_climate.py` follows MassBalanceMachine's patterns:
-
-### Download Functions
-- `_download_era5_land_monthly_year()` — CDS monthly reanalysis download
-- `_download_era5_land_hourly_year()` — CDS hourly reanalysis download (optional)
-- `_download_era5_land_geopotential()` — Geopotential for altitude reference
-
-### Processing Functions
-- `_monthly_to_daily_point()` — Forward-fill monthly → daily
-- `_hourly_to_daily_point()` — Aggregate hourly → daily
-- `_compute_ref_hgt_from_geopotential()` — Convert geopotential to altitude
-
-### Main Orchestrator
-- `ensure_era5_file_for_gdir(gdir, use_daily=False, overwrite=False)` — Unified entry point selecting monthly or daily mode
-
-## Usage
-
-Run preprocessing:
-
-```bash
-python glacier_prepro.py
-```
-
-To explicitly request daily (hourly) resolution, edit `glacier_prepro.py` and change:
-```python
-ensure_era5_file_for_gdir(gdir, use_daily=False)  # Monthly (default)
-```
-to
-```python
-ensure_era5_file_for_gdir(gdir, use_daily=True)   # Hourly→daily (heavier)
-```
+Metadata includes `ref_hgt` (derived from CDS geopotential), `ref_pix_lat/lon`, and `hydro_yr_0/1`.
 
 ## CDS API Setup
 
 ERA5 download requires a CDS API key configured in `~/.cdsapirc`. See:
-
 https://cds.climate.copernicus.eu/how-to-api
