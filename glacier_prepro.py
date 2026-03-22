@@ -1,10 +1,10 @@
 from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
+from era5_climate import ensure_era5_file_for_gdir
 import json, os
 
 if __name__ == "__main__":
-
     working_dir = utils.gettempdir('ODINN_prepro')
     print("Working directory:", working_dir)
     base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
@@ -55,7 +55,16 @@ if __name__ == "__main__":
     for gdir in gdirs: # TODO: change to parallel processing by creating an entity task
         # We store all the paths for each RGI ID to be retrieved later on in ODINN
         rgi_paths[gdir.rgi_id] = gdir.dir.replace(working_dir+'/', '')
-        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily') 
+
+        # Build an independent W5E5 dataset.
+        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
+
+        # Build an independent ERA5 dataset directly from CDS.
+        # Default: monthly data (lightweight). To use hourly→daily, change to:
+        #   era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
+        print(f"Generating ERA5 climate file for {gdir.rgi_id}")
+        era5_path = ensure_era5_file_for_gdir(gdir, use_daily=False, overwrite=False)
+        print("ERA5 climate path:", era5_path)
 
         print("dem path: " , gdir.get_filepath("dem"))
 

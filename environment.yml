@@ -25,6 +25,7 @@ dependencies:
   - pytables
   - salem
   - motionless
+  - cdsapi
   - pip
   - pip:
     - joblib
