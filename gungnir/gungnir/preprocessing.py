@@ -8,6 +8,17 @@ from gungnir.utils import read_glacier_names, remove_id_from_string
 
 _default_working_dir = utils.gettempdir('ODINN_prepro')
 
+
+def _maybe_generate_w5e5_file(gdir):
+    """Reuse existing W5E5 climate files when available."""
+    w5e5_path = os.path.join(gdir.dir, 'climate_historical_daily_W5E5.nc')
+    if os.path.exists(w5e5_path):
+        print(f"Reusing existing W5E5 climate file for {gdir.rgi_id}: {w5e5_path}")
+        return w5e5_path
+
+    process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
+    return w5e5_path
+
 def preprocessing_file(file, working_dir=_default_working_dir):
     """
     Preprocess glaciers directly from file
@@ -65,7 +76,7 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
         rgi_names[gdir.rgi_id] = remove_id_from_string(gdir.name)
 
         # Build an independent W5E5 dataset.
-        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
+        _maybe_generate_w5e5_file(gdir)
 
         # Build an independent ERA5 dataset directly from CDS.
         # Default: monthly data (lightweight). To use hourly→daily, change to:

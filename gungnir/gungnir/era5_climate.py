@@ -46,6 +46,23 @@ ERA5_HOURLY_REQUEST_VARS = [
 ]
 
 
+def _get_cdsapi_client() -> cdsapi.Client:
+    """Create a CDS API client with a clear setup error if credentials are missing."""
+    try:
+        return cdsapi.Client()
+    except Exception as exc:
+        message = str(exc)
+        if "Missing/incomplete configuration file" in message:
+            raise RuntimeError(
+                "ERA5 download requires a valid CDS API configuration. "
+                "Create ~/.cdsapirc with your CDS credentials, for example:\n\n"
+                "url: https://cds.climate.copernicus.eu/api\n"
+                "key: <your-uid>:<your-api-key>\n\n"
+                "Then rerun preprocessing. Existing W5E5 files will be reused, so only ERA5 will be attempted."
+            ) from exc
+        raise
+
+
 def _normalize_era5_coords(ds: xr.Dataset) -> xr.Dataset:
     """Normalize coordinate and dimension names for ERA5 datasets.
     
@@ -117,7 +134,7 @@ def _download_era5_land_monthly_year(lat: float, lon: float, year: int, output_n
     with tempfile.TemporaryDirectory(prefix=f"era5_monthly_{year}_") as tmp_dir_str:
         tmp_dir = Path(tmp_dir_str)
         zip_path = tmp_dir / f"era5_land_monthly_{year}.zip"
-        client = cdsapi.Client()
+        client = _get_cdsapi_client()
         client.retrieve("reanalysis-era5-land-monthly-means", request, str(zip_path))
         extracted_nc = _extract_first_netcdf(zip_path, tmp_dir)
         ds = xr.open_dataset(extracted_nc)
@@ -153,7 +170,7 @@ def _download_era5_land_hourly_year(lat: float, lon: float, year: int, output_nc
     with tempfile.TemporaryDirectory(prefix=f"era5_hourly_{year}_") as tmp_dir_str:
         tmp_dir = Path(tmp_dir_str)
         zip_path = tmp_dir / f"era5_land_hourly_{year}.zip"
-        client = cdsapi.Client()
+        client = _get_cdsapi_client()
         client.retrieve("reanalysis-era5-land", request, str(zip_path))
         extracted_nc = _extract_first_netcdf(zip_path, tmp_dir)
         ds = xr.open_dataset(extracted_nc)
@@ -183,12 +200,11 @@ def _download_era5_land_geopotential(lat: float, lon: float, output_nc: Path):
     with tempfile.TemporaryDirectory(prefix="era5_geopotential_") as tmp_dir_str:
         tmp_dir = Path(tmp_dir_str)
         zip_path = tmp_dir / "era5_land_geopotential.zip"
-        client = cdsapi.Client()
+        client = _get_cdsapi_client()
         client.retrieve("reanalysis-era5-land-monthly-means", request, str(zip_path))
         extracted_nc = _extract_first_netcdf(zip_path, tmp_dir)
         ds = xr.open_dataset(extracted_nc)
         ds = _normalize_era5_coords(ds)
-        ds.to_netcdf(output_nc)
         ds.to_netcdf(output_nc)
 
 
