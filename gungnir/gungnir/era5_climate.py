@@ -17,8 +17,8 @@ import zipfile
 from calendar import monthrange
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-import cdsapi
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -46,9 +46,11 @@ ERA5_HOURLY_REQUEST_VARS = [
 ]
 
 
-def _get_cdsapi_client() -> cdsapi.Client:
+def _get_cdsapi_client() -> Any:
     """Create a CDS API client with a clear setup error if credentials are missing."""
     try:
+        import cdsapi
+
         return cdsapi.Client()
     except Exception as exc:
         message = str(exc)
@@ -59,6 +61,11 @@ def _get_cdsapi_client() -> cdsapi.Client:
                 "url: https://cds.climate.copernicus.eu/api\n"
                 "key: <your-uid>:<your-api-key>\n\n"
                 "Then rerun preprocessing. Existing W5E5 files will be reused, so only ERA5 will be attempted."
+            ) from exc
+        if exc.__class__.__name__ == "ModuleNotFoundError":
+            raise RuntimeError(
+                "ERA5 download requires the optional 'cdsapi' dependency. "
+                "Install it in the active environment before enabling ERA5 preprocessing."
             ) from exc
         raise
 

@@ -40,10 +40,14 @@ You can also use Gungnir directly from the terminal. If you are using the remote
 ```bash
 python gungnir/gungnir/preprocessing.py glaciers.txt
 ```
-This will retrieve all the data of the glaciers included in `glaciers.txt`. If instead you are working in a local directory, simply do 
+If no working directory is provided, data is written to `~/.ODINN/ODINN_prepro` (the default location expected by Sleipnir).
+
+You can still provide any explicit local/custom output directory:
 ```bash
 python gungnir/gungnir/preprocessing.py glaciers.txt <working-dir>
 ```
+
+Note: if `<working-dir>` is set to `~/.ODINN` or `~/.ODINN/per_glacier`, Gungnir automatically normalizes it to `~/.ODINN/ODINN_prepro` to avoid path mismatches with Sleipnir.
 
 ## Climate Sources
 

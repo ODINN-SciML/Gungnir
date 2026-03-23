@@ -2,7 +2,6 @@ import sys
 from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
-from gungnir.era5_climate import ensure_era5_file_for_gdir
 import json, os
 from gungnir.utils import read_glacier_names, remove_id_from_string
 
@@ -17,7 +16,31 @@ def _cds_credentials_available() -> bool:
         return True
     return False
 
-_default_working_dir = utils.gettempdir('ODINN_prepro')
+
+def _sleipnir_default_working_dir() -> str:
+    """Canonical preprocessed data location expected by Sleipnir."""
+    return os.path.join(os.path.expanduser("~"), ".ODINN", "ODINN_prepro")
+
+
+_default_working_dir = _sleipnir_default_working_dir()
+
+
+def _normalize_working_dir(working_dir: str) -> str:
+    """Normalize output path to keep Gungnir/Sleipnir data layout consistent."""
+    if not working_dir:
+        return _default_working_dir
+
+    wd = os.path.abspath(os.path.expanduser(working_dir))
+    odinn_root = os.path.join(os.path.expanduser("~"), ".ODINN")
+
+    # Common misconfiguration: users pass ~/.ODINN or ~/.ODINN/per_glacier.
+    # Redirect to ~/.ODINN/ODINN_prepro, which is where Sleipnir looks.
+    if wd == odinn_root or wd == os.path.join(odinn_root, "per_glacier"):
+        target = _default_working_dir
+        print(f"Normalizing working_dir from '{wd}' to '{target}' for Sleipnir compatibility.")
+        return target
+
+    return wd
 
 
 def _maybe_generate_w5e5_file(gdir):
@@ -51,6 +74,9 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         include_era5 = _cds_credentials_available()
         if not include_era5:
             print("ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var).")
+
+    working_dir = _normalize_working_dir(working_dir)
+    os.makedirs(working_dir, exist_ok=True)
 
     base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
 
@@ -89,7 +115,7 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
     rgi_names = {}
     for gdir in gdirs: # TODO: change to parallel processing by creating an entity task
         # We store all the paths for each RGI ID to be retrieved later on in ODINN
-        rgi_paths[gdir.rgi_id] = gdir.dir.replace(working_dir+'/', '')
+        rgi_paths[gdir.rgi_id] = os.path.relpath(gdir.dir, working_dir)
         rgi_names[gdir.rgi_id] = remove_id_from_string(gdir.name)
 
         # Build an independent W5E5 dataset.
@@ -99,6 +125,8 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         # Default: monthly data (lightweight). To use hourly→daily, change to:
         #   era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
         if include_era5:
+            from gungnir.era5_climate import ensure_era5_file_for_gdir
+
             print(f"Generating ERA5 climate file for {gdir.rgi_id}")
             era5_path = ensure_era5_file_for_gdir(gdir, use_daily=False, overwrite=False)
             print("ERA5 climate path:", era5_path)
