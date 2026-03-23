@@ -6,6 +6,17 @@ from gungnir.era5_climate import ensure_era5_file_for_gdir
 import json, os
 from gungnir.utils import read_glacier_names, remove_id_from_string
 
+
+def _cds_credentials_available() -> bool:
+    """Return True if a CDS API key file or env-var credentials are present."""
+    cdsapirc = os.path.expanduser("~/.cdsapirc")
+    if os.path.isfile(cdsapirc):
+        return True
+    # The ecmwf/cdsapi library also accepts CDSAPI_URL + CDSAPI_KEY env vars
+    if os.environ.get("CDSAPI_KEY"):
+        return True
+    return False
+
 _default_working_dir = utils.gettempdir('ODINN_prepro')
 
 
@@ -19,21 +30,27 @@ def _maybe_generate_w5e5_file(gdir):
     process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
     return w5e5_path
 
-def preprocessing_file(file, working_dir=_default_working_dir):
+def preprocessing_file(file, working_dir=_default_working_dir, include_era5=None):
     """
     Preprocess glaciers directly from file
     """
 
     rgi_ids = read_glacier_names(file)
-    preprocessing_glaciers(rgi_ids, working_dir=working_dir)
+    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=include_era5)
 
-def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
+def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_era5=None):
     """
     Preprocessing of glaciers from a list of glaciers
 
     Arguments:
         - rgi_ids: List of glaciers and/or regions to process. E.g., rgi_ids = ['RGI60-11.00897', 'RGI60-11.01270']
     """
+
+    # Auto-detect ERA5 capability when not explicitly requested
+    if include_era5 is None:
+        include_era5 = _cds_credentials_available()
+        if not include_era5:
+            print("ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var).")
 
     base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
 
@@ -81,9 +98,10 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir):
         # Build an independent ERA5 dataset directly from CDS.
         # Default: monthly data (lightweight). To use hourly→daily, change to:
         #   era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
-        print(f"Generating ERA5 climate file for {gdir.rgi_id}")
-        era5_path = ensure_era5_file_for_gdir(gdir, use_daily=False, overwrite=False)
-        print("ERA5 climate path:", era5_path)
+        if include_era5:
+            print(f"Generating ERA5 climate file for {gdir.rgi_id}")
+            era5_path = ensure_era5_file_for_gdir(gdir, use_daily=False, overwrite=False)
+            print("ERA5 climate path:", era5_path)
 
         print("dem path: " , gdir.get_filepath("dem"))
 

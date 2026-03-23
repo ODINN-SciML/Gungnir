@@ -6,10 +6,28 @@ import json
 from gungnir import preprocessing_glaciers, emptyDir
 
 
+# Files that are ERA5-specific and excluded from the stable hash.
+# ERA5 is tested separately in test_era5.py.
+_ERA5_SKIP_SUFFIXES = ("climate_historical_daily_ERA5.nc",)
+_ERA5_SKIP_DIRS = ("era5_cds_cache",)
+
+
+def _is_era5_file(path: str) -> bool:
+    if any(path.endswith(s) for s in _ERA5_SKIP_SUFFIXES):
+        return True
+    if any(seg in path.split(os.sep) for seg in _ERA5_SKIP_DIRS):
+        return True
+    return False
+
+
 def test_hash():
     """
     This test checks the results of the preprocessing by comparing the content of
-    the generated files to a checksum of reference
+    the generated files to a checksum of reference.
+
+    ERA5 files are intentionally excluded from the checksum since they require CDS
+    API credentials that are not available in CI. ERA5 is tested separately in
+    test_era5.py.
     """
 
     def hashFile(path:str):
@@ -20,7 +38,8 @@ def test_hash():
     emptyDir(working_dir)
 
     rgi_ids = ["RGI60-11.03646"]
-    preprocessing_glaciers(rgi_ids, working_dir=working_dir)
+    # ERA5 is disabled so the hash is stable in CI without CDS credentials.
+    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=False)
 
     files = glob.glob(working_dir+"/**/*", recursive=True)
     checksums = {}
@@ -29,6 +48,8 @@ def test_hash():
         if f.endswith('log.txt') or f.endswith('geometries.pkl') or f.endswith('inversion_flowlines.pkl') or f.endswith('centerlines.pkl'):
             # Log output is run dependent
             # Geometry file is pickled and depends on the Python session
+            continue
+        if _is_era5_file(f):
             continue
         if not os.path.isdir(f):
             chk = hashFile(f)
