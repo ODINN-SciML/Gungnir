@@ -14,7 +14,6 @@ Inspired by MassBalanceMachine's climate data processing architecture.
 import os
 import tempfile
 import zipfile
-from calendar import monthrange
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -215,23 +214,30 @@ def _download_era5_land_geopotential(lat: float, lon: float, output_nc: Path):
         ds.to_netcdf(output_nc)
 
 
-def _monthly_to_daily_point(monthly_ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
-    """Convert monthly ERA5-Land data to daily forcing for Sleipnir.
-    
-    Selects nearest grid point and forward-fills monthly values to all days in each month.
-    Monthly fluxes (heat, radiation) are divided by the number of days in each month to
-    produce daily averages, consistent with daily aggregation from hourly data.
-    
+def _monthly_to_monthly_point(monthly_ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
+    """Process monthly ERA5-Land data into a Sleipnir-compatible monthly climate dataset.
+
+    Selects nearest grid point and applies unit conversions while keeping the monthly
+    time axis intact. The resulting dataset can be written directly as
+    ``climate_historical_monthly_ERA5.nc`` which Sleipnir reads via its ERA5 monthly path.
+
+    Unit conversions applied:
+      - ``temp``:  t2m [K] → [°C]  (monthly mean)
+      - ``prcp``:  tp  [m]  kept as monthly total
+      - ``fal``:   forecast albedo [0-1]  kept as monthly mean
+      - ``slhf/sshf/ssrd/str``: energy fluxes [J/m²] kept as monthly totals
+      - ``gradient``: constant lapse rate -0.0065 K/m
+
     Args:
-        monthly_ds: Monthly ERA5 dataset with dims=(time,) where time is monthly
-        lat, lon: Glacier center coordinates
-        
+        monthly_ds: Monthly ERA5 dataset with dims=(time,) where time is monthly.
+        lat, lon: Glacier centre coordinates.
+
     Returns:
-        xr.Dataset with daily time dimension and Sleipnir-compatible variables
+        xr.Dataset with monthly time dimension and Sleipnir-compatible variables.
     """
     ds = _normalize_era5_coords(monthly_ds)
-    
-    # Handle ensemble dimension if present
+
+    # Handle ensemble dimensions if present
     if "expver" in ds.dims:
         ds = ds.reduce(np.nansum, dim="expver")
     if "number" in ds.dims:
@@ -239,91 +245,33 @@ def _monthly_to_daily_point(monthly_ds: xr.Dataset, lat: float, lon: float) -> x
 
     # Select nearest grid point
     point = ds.sel(latitude=lat, longitude=lon, method="nearest")
-    
-    # Extract variables with appropriate unit conversions
-    temp = point["t2m"] - 273.15  # K → °C
-    prcp = point["tp"]  # Already in m
-    fal = point["fal"]  # 0-1 scale, no conversion
-    slhf = point["slhf"]  # J/m²
-    sshf = point["sshf"]  # J/m²
-    ssrd = point["ssrd"]  # J/m²
-    str_ = point["str"]  # J/m²
-    
-    # Create daily time index by forward-filling each month's value across all days
-    time_index = pd.to_datetime(point.time.values)
-    daily_index = pd.date_range(
-        start=time_index[0].replace(day=1),
-        end=(time_index[-1] + pd.DateOffset(months=1)).replace(day=1) - pd.Timedelta(days=1),
-        freq="D"
-    )
-    
-    # Function to forward-fill monthly values to daily
-    def _monthly_to_daily_forward_fill(monthly_var):
-        """Forward-fill monthly values to daily, accounting for days per month."""
-        daily_values = []
-        for month_idx, month_val in enumerate(monthly_var.values):
-            # Get the month and year from time index
-            year = time_index[month_idx].year
-            month = time_index[month_idx].month
-            days_in_month = monthrange(year, month)[1]
-            
-            # Find all daily indices that fall in this month
-            month_start = pd.Timestamp(year=year, month=month, day=1)
-            month_end = month_start + pd.DateOffset(months=1) - pd.Timedelta(days=1)
-            mask = (daily_index >= month_start) & (daily_index <= month_end)
-            daily_values.extend([month_val] * mask.sum())
-        
-        return np.array(daily_values[:len(daily_index)])
-    
-    # Convert temperature, albedo, and fluxes to daily
-    temp_daily = _monthly_to_daily_forward_fill(temp)
-    fal_daily = _monthly_to_daily_forward_fill(fal)
-    
-    # For precipitation, forward-fill (monthly total over all days)
-    prcp_daily = _monthly_to_daily_forward_fill(prcp)
-    
-    # For fluxes, divide by days in month to get daily average
-    slhf_daily = []
-    sshf_daily = []
-    ssrd_daily = []
-    str_daily = []
-    
-    for month_idx, (slhf_val, sshf_val, ssrd_val, str_val) in enumerate(
-        zip(slhf.values, sshf.values, ssrd.values, str_.values)
-    ):
-        year = time_index[month_idx].year
-        month = time_index[month_idx].month
-        days_in_month = monthrange(year, month)[1]
-        
-        # Average daily value = monthly total / days in month
-        month_start = pd.Timestamp(year=year, month=month, day=1)
-        month_end = month_start + pd.DateOffset(months=1) - pd.Timedelta(days=1)
-        mask = (daily_index >= month_start) & (daily_index <= month_end)
-        
-        slhf_daily.extend([float(slhf_val) / days_in_month] * mask.sum())
-        sshf_daily.extend([float(sshf_val) / days_in_month] * mask.sum())
-        ssrd_daily.extend([float(ssrd_val) / days_in_month] * mask.sum())
-        str_daily.extend([float(str_val) / days_in_month] * mask.sum())
-    
-    # Create constant gradient
-    gradient = np.full(len(daily_index), -0.0065, dtype=np.float32)
-    
-    # Build output dataset
+
+    # Unit conversions
+    temp = (point["t2m"] - 273.15).astype(np.float32)  # K → °C
+    prcp = point["tp"].astype(np.float32)               # m, monthly total
+    fal  = point["fal"].astype(np.float32)              # 0-1, monthly mean
+    slhf = point["slhf"].astype(np.float32)             # J/m², monthly total
+    sshf = point["sshf"].astype(np.float32)             # J/m², monthly total
+    ssrd = point["ssrd"].astype(np.float32)             # J/m², monthly total
+    str_ = point["str"].astype(np.float32)              # J/m², monthly total
+
+    # Constant lapse rate (same value used in the daily path)
+    gradient = xr.full_like(temp, fill_value=np.float32(-0.0065), dtype=np.float32)
+
     out = xr.Dataset(
         {
-            "temp": (["time"], temp_daily, {"units": "°C"}),
-            "prcp": (["time"], prcp_daily, {"units": "m"}),
-            "gradient": (["time"], gradient, {"units": "K/m"}),
-            "fal": (["time"], fal_daily, {"units": "0-1"}),
-            "slhf": (["time"], np.array(slhf_daily), {"units": "J/m²"}),
-            "sshf": (["time"], np.array(sshf_daily), {"units": "J/m²"}),
-            "ssrd": (["time"], np.array(ssrd_daily), {"units": "J/m²"}),
-            "str": (["time"], np.array(str_daily), {"units": "J/m²"}),
+            "temp":     (["time"], temp.values,     {"units": "°C"}),
+            "prcp":     (["time"], prcp.values,     {"units": "m"}),
+            "gradient": (["time"], gradient.values, {"units": "K/m"}),
+            "fal":      (["time"], fal.values,      {"units": "0-1"}),
+            "slhf":     (["time"], slhf.values,     {"units": "J/m²"}),
+            "sshf":     (["time"], sshf.values,     {"units": "J/m²"}),
+            "ssrd":     (["time"], ssrd.values,     {"units": "J/m²"}),
+            "str":      (["time"], str_.values,     {"units": "J/m²"}),
         },
-        coords={"time": daily_index},
+        coords={"time": point.time.values},
     )
-    
-    return out.astype(np.float32)
+    return out
 
 
 def _hourly_to_daily_point(hourly_ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
@@ -422,26 +370,38 @@ def _get_era5_year_range():
 
 
 def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = False) -> str:
-    """Generate a daily climate NetCDF file compatible with Sleipnir.
-    
-    Downloads ERA5-Land data (monthly by default for lightweight downloads, or hourly
-    if use_daily=True) and processes to daily forcing data that Sleipnir can ingest.
-    
-    The output file is named `climate_historical_daily_ERA5.nc` and includes:
-    - Variables: temp (°C), prcp (m), gradient (K/m), fal, slhf, sshf, ssrd, str
-    - Metadata: ref_hgt, ref_pix_lat, ref_pix_lon, climate_source, hydro_yr_0/1
-    - Time: Daily from 1950 to current year
-    
+    """Generate an ERA5 climate NetCDF file compatible with Sleipnir.
+
+    Downloads ERA5-Land data and writes a file that Sleipnir's ``get_raw_climate_data``
+    can ingest directly.
+
+    * ``use_daily=False`` (default): downloads monthly averaged reanalysis data and
+      writes ``climate_historical_monthly_ERA5.nc``.  Monthly values are kept as-is;
+      no interpolation to daily is performed.  Sleipnir checks for this file first
+      and processes it natively at monthly resolution.
+
+    * ``use_daily=True``: downloads hourly reanalysis data, aggregates to daily, and
+      writes ``climate_historical_daily_ERA5.nc``.  Use this when daily resolution is
+      required (e.g. for W5E5-compatible workflows).
+
+    Both output files include:
+      - Variables: temp (°C), prcp (m), gradient (K/m), fal, slhf, sshf, ssrd, str
+      - Metadata: ref_hgt, ref_pix_lat, ref_pix_lon, climate_source, hydro_yr_0/1
+
     Args:
-        gdir: GlacierDirectory from OGGM with .dir, .cenlat, .cenlon attributes
-        use_daily: If False (default), download monthly data (lightweight).
-                   If True, download hourly data (more I/O).
-        overwrite: If False (default), skip if file exists. If True, re-download.
-        
+        gdir: GlacierDirectory from OGGM with .dir, .cenlat, .cenlon attributes.
+        use_daily: If False (default), produce a lightweight monthly file.
+                   If True, produce a daily file from hourly downloads.
+        overwrite: If False (default), skip if output file already exists.
+
     Returns:
-        Path to the generated climate NetCDF file (as string)
+        Path to the generated climate NetCDF file (as string).
     """
-    out_era5 = Path(gdir.dir) / "climate_historical_daily_ERA5.nc"
+    if use_daily:
+        out_era5 = Path(gdir.dir) / "climate_historical_daily_ERA5.nc"
+    else:
+        out_era5 = Path(gdir.dir) / "climate_historical_monthly_ERA5.nc"
+
     if out_era5.exists() and not overwrite:
         return str(out_era5)
 
@@ -453,30 +413,27 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
     lon = float(gdir.cenlon)
     start_year, end_year = _get_era5_year_range()
 
-    # Download and process climate data for each year
-    daily_yearly = []
-    
+    yearly_datasets = []
+
     if use_daily:
         # High-resolution hourly → daily mode
         for year in range(start_year, end_year + 1):
             yearly_nc = cache_dir / f"era5_land_hourly_{year}.nc"
             if overwrite or not yearly_nc.exists():
                 _download_era5_land_hourly_year(lat, lon, year, yearly_nc)
-            
             hourly_ds = xr.open_dataset(yearly_nc)
-            daily_yearly.append(_hourly_to_daily_point(hourly_ds, lat, lon))
+            yearly_datasets.append(_hourly_to_daily_point(hourly_ds, lat, lon))
     else:
-        # Default lightweight monthly → daily mode
+        # Default lightweight monthly mode — no daily expansion
         for year in range(start_year, end_year + 1):
             yearly_nc = cache_dir / f"era5_land_monthly_{year}.nc"
             if overwrite or not yearly_nc.exists():
                 _download_era5_land_monthly_year(lat, lon, year, yearly_nc)
-            
             monthly_ds = xr.open_dataset(yearly_nc)
-            daily_yearly.append(_monthly_to_daily_point(monthly_ds, lat, lon))
+            yearly_datasets.append(_monthly_to_monthly_point(monthly_ds, lat, lon))
 
     # Concatenate yearly datasets into single timeseries
-    era5_daily = xr.concat(daily_yearly, dim="time").sortby("time")
+    era5_daily = xr.concat(yearly_datasets, dim="time").sortby("time")
 
     # Compute reference height from geopotential
     geopotential_nc = cache_dir / "era5_land_geopotential.nc"
