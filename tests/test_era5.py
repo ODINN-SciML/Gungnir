@@ -17,6 +17,7 @@ workflow step to write ~/.cdsapirc before running pytest.
 import os
 import tempfile
 import pytest
+import xarray as xr
 from gungnir import preprocessing_glaciers, emptyDir
 from gungnir.preprocessing import _cds_credentials_available
 
@@ -27,9 +28,13 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_era5_file_generated():
-    """Default ERA5 preprocessing produces a climate_historical_monthly_ERA5.nc file."""
+def test_era5_file_generated(monkeypatch):
+    """ERA5 preprocessing produces a monthly ERA5 file for a lightweight one-year request."""
     import glob
+
+    # Keep integration test lightweight while still exercising the full CDS path.
+    monkeypatch.setenv("GUNGNIR_ERA5_START_YEAR", "2020")
+    monkeypatch.setenv("GUNGNIR_ERA5_END_YEAR", "2020")
 
     folderName = "Gungnir_era5_tests"
     working_dir = os.path.join(tempfile.gettempdir(), folderName)
@@ -42,6 +47,10 @@ def test_era5_file_generated():
     assert len(era5_files) == len(rgi_ids), (
         f"Expected one ERA5 file per glacier, found: {era5_files}"
     )
+
+    with xr.open_dataset(era5_files[0]) as ds:
+        assert int(ds.attrs["hydro_yr_0"]) == 2020
+        assert int(ds.attrs["hydro_yr_1"]) == 2020
 
 
 if __name__ == "__main__":

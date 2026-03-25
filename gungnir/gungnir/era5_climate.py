@@ -360,12 +360,30 @@ def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, 
 
 def _get_era5_year_range():
     """Get the range of available ERA5 years.
-    
-    ERA5-Land data is available from 1950 to the current year.
-    Returns the start and end year for data download.
+
+    By default ERA5-Land monthly data is requested from 1950 to the current year.
+    For lightweight integration tests, the range can be overridden with:
+
+      - GUNGNIR_ERA5_START_YEAR
+      - GUNGNIR_ERA5_END_YEAR
+
+    Returns:
+        (start_year, end_year)
     """
-    start_year = 1950
-    end_year = datetime.utcnow().year
+    default_start_year = 1950
+    default_end_year = datetime.utcnow().year
+
+    start_env = os.environ.get("GUNGNIR_ERA5_START_YEAR")
+    end_env = os.environ.get("GUNGNIR_ERA5_END_YEAR")
+
+    start_year = int(start_env) if start_env is not None else default_start_year
+    end_year = int(end_env) if end_env is not None else default_end_year
+
+    if start_year > end_year:
+        raise ValueError(
+            f"Invalid ERA5 year range: start_year ({start_year}) > end_year ({end_year})."
+        )
+
     return start_year, end_year
 
 
