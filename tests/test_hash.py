@@ -8,7 +8,10 @@ from gungnir import preprocessing_glaciers, emptyDir
 
 # Files that are ERA5-specific and excluded from the stable hash.
 # ERA5 is tested separately in test_era5.py.
-_ERA5_SKIP_SUFFIXES = ("climate_historical_daily_ERA5.nc",)
+_ERA5_SKIP_SUFFIXES = (
+    "climate_historical_daily_ERA5.nc",
+    "climate_historical_monthly_ERA5.nc",
+)
 _ERA5_SKIP_DIRS = ("era5_cds_cache",)
 
 
@@ -56,7 +59,7 @@ def test_hash():
             checksums[f.split(folderName)[1]] = chk
     globalChecksum = hashlib.md5(json.dumps(checksums, sort_keys=True, ensure_ascii=True).encode('utf-8')).hexdigest()
 
-    refChecksum = "39dc214d784840963686923643e40785"
+    refChecksum = "91c9365a885a26792a5497d4d6d788f7"
     if globalChecksum!=refChecksum:
         raise Exception(f"Computed checksum is '{globalChecksum}' but reference is '{refChecksum}'. This likely means that the result of the preprocessing has changed. Update of the reference should be carefully tracked and the root cause of that change must be understood since this might impact the subsequent processing steps. In order to ease debugging, you can compare the checksums per file for different executions or for different heads of the repository. \n\n{checksums=}")
 

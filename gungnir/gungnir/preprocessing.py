@@ -42,17 +42,6 @@ def _normalize_working_dir(working_dir: str) -> str:
 
     return wd
 
-
-def _maybe_generate_w5e5_file(gdir):
-    """Reuse existing W5E5 climate files when available."""
-    w5e5_path = os.path.join(gdir.dir, 'climate_historical_daily_W5E5.nc')
-    if os.path.exists(w5e5_path):
-        print(f"Reusing existing W5E5 climate file for {gdir.rgi_id}: {w5e5_path}")
-        return w5e5_path
-
-    process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
-    return w5e5_path
-
 def preprocessing_file(file, working_dir=_default_working_dir, include_era5=None):
     """
     Preprocess glaciers directly from file
@@ -118,12 +107,15 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         rgi_paths[gdir.rgi_id] = os.path.relpath(gdir.dir, working_dir)
         rgi_names[gdir.rgi_id] = remove_id_from_string(gdir.name)
 
-        # Build an independent W5E5 dataset.
-        _maybe_generate_w5e5_file(gdir)
+        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
 
-        # Build an independent ERA5 dataset directly from CDS.
-        # Default: monthly data (lightweight). To use hourly→daily, change to:
+        # Build an ERA5 climate file directly from CDS.
+        # Default (use_daily=False): downloads monthly data and writes
+        #   climate_historical_monthly_ERA5.nc  (lightweight, read natively by Sleipnir).
+        # For daily resolution (e.g. W5E5-compatible workflows) use:
         #   era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
+        # which downloads hourly data, aggregates to daily and writes
+        #   climate_historical_daily_ERA5.nc instead.
         if include_era5:
             from gungnir.era5_climate import ensure_era5_file_for_gdir
 

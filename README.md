@@ -61,11 +61,11 @@ Both sources are always generated for each glacier, allowing selection via Sleip
 ## ERA5 Download Modes
 
 ### Monthly (Default — Lightweight)
-By default, Gungnir downloads **monthly averaged** ERA5-Land data from CDS, then processes it to daily resolution. This is significantly more lightweight in terms of data volume.
+By default, Gungnir downloads **monthly averaged** ERA5-Land data from CDS and keeps it at monthly resolution. This is significantly more lightweight in terms of data volume.
 
 Monthly data is:
 - **Downloaded**: From `reanalysis-era5-land-monthly-means`
-- **Processed**: Forward-filled to daily; fluxes divided by days/month for daily averages
+- **Stored**: As `climate_historical_monthly_ERA5.nc` for downstream monthly workflows (Sleipnir/MassBalanceMachine)
 
 ### Daily (Optional — High Resolution)
 To enable hourly→daily aggregation, set `use_daily=True` in `ensure_era5_file_for_gdir()` inside `preprocessing.py`:
@@ -78,7 +78,11 @@ Hourly data is downloaded from `reanalysis-era5-land` (24 timesteps/day) and res
 
 ## ERA5 Output
 
-Gungnir creates `climate_historical_daily_ERA5.nc` with daily time series for:
+Gungnir writes one of the following, depending on mode:
+- `climate_historical_monthly_ERA5.nc` (default monthly mode)
+- `climate_historical_daily_ERA5.nc` (`use_daily=True` mode)
+
+Both files contain:
 - `temp` — 2m temperature (°C)
 - `prcp` — total precipitation (m)
 - `gradient` — temperature lapse rate (K/m, constant −0.0065)

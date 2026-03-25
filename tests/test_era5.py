@@ -28,7 +28,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_era5_file_generated():
-    """ERA5 preprocessing produces a climate_historical_daily_ERA5.nc file."""
+    """Default ERA5 preprocessing produces a climate_historical_monthly_ERA5.nc file."""
     import glob
 
     folderName = "Gungnir_era5_tests"
@@ -38,7 +38,7 @@ def test_era5_file_generated():
     rgi_ids = ["RGI60-11.03646"]
     preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=True)
 
-    era5_files = glob.glob(working_dir + "/**/climate_historical_daily_ERA5.nc", recursive=True)
+    era5_files = glob.glob(working_dir + "/**/climate_historical_monthly_ERA5.nc", recursive=True)
     assert len(era5_files) == len(rgi_ids), (
         f"Expected one ERA5 file per glacier, found: {era5_files}"
     )
