@@ -11,11 +11,11 @@ Gungnir uses OGGM to generate all necessary files for the initial state and clim
 All the notebooks inside this notebook can be executed after properly setting the environment. The `environment.yml` file can be used to
 install all the required dependencies. Beside some standard Python dependencies, the `environment.yml` file include the installation of the module `gungnir` (included in this repository). The package `gungnir` includes all the code required to download the glacier data using OGGM.
 
-In order to install the environment, you can use conda or mamba (see [Managing Environments](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for more information) with `conda env create -f environment.yml`. Once the environment is created, you can create the associated iPython kernel with 
+In order to install the environment, you can use conda or mamba (see [Managing Environments](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for more information) with `conda env create -f environment.yml`. Once the environment is created, you can create the associated iPython kernel with
 ```
 python -m ipykernel install --user --name oggm_env_gungnir --display-name "IPython - Gungnir"
 ```
-This will allow you to execute this environment directly from Jupyter notebooks. 
+This will allow you to execute this environment directly from Jupyter notebooks.
 
 Alternatively, we included a `Makefile` that creates the conda environment and installs the associated iPython kernel so this environment can be accessible though Jupyter notebooks all at once. In order to use the Makefile, you need to open a terminal where the repository is located and enter
 ```
@@ -30,9 +30,9 @@ or
 ```
 pip install -e gungnir
 ```
-if you are working in developer mode. 
+if you are working in developer mode.
 
-## Usage 
+## Usage
 
 We included an example notebook of how to retrieve data using OGGM data in `notebooks/Example.ipynb`
 
@@ -44,7 +44,7 @@ If no working directory is provided, data is written to `~/.ODINN/ODINN_prepro` 
 
 You can still provide any explicit local/custom output directory:
 ```bash
-python gungnir/gungnir/preprocessing.py glaciers.txt <working-dir>
+python gungnir/gungnir/preprocessing.py glaciers.txt --working_dir <working-dir>
 ```
 
 Note: if `<working-dir>` is set to `~/.ODINN` or `~/.ODINN/per_glacier`, Gungnir automatically normalizes it to `~/.ODINN/ODINN_prepro` to avoid path mismatches with Sleipnir.
@@ -68,10 +68,10 @@ Monthly data is:
 - **Stored**: As `climate_historical_monthly_ERA5.nc` for downstream monthly workflows (Sleipnir/MassBalanceMachine)
 
 ### Daily (Optional — High Resolution)
-To enable hourly→daily aggregation, set `use_daily=True` in `ensure_era5_file_for_gdir()` inside `preprocessing.py`:
+To enable hourly→daily aggregation, use the `use_daily` option:
 
 ```python
-era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
+python gungnir/gungnir/preprocessing.py glaciers.txt --working_dir <working-dir> --use_daily
 ```
 
 Hourly data is downloaded from `reanalysis-era5-land` (24 timesteps/day) and resampled to daily.
@@ -80,7 +80,7 @@ Hourly data is downloaded from `reanalysis-era5-land` (24 timesteps/day) and res
 
 Gungnir writes one of the following, depending on mode:
 - `climate_historical_monthly_ERA5.nc` (default monthly mode)
-- `climate_historical_daily_ERA5.nc` (`use_daily=True` mode)
+- `climate_historical_daily_ERA5.nc` (`use_daily` option)
 
 Both files contain:
 - `temp` — 2m temperature (°C)

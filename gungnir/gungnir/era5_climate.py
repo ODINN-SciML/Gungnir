@@ -16,7 +16,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+import cdsapi
 
 import numpy as np
 import pandas as pd
@@ -47,10 +47,9 @@ ERA5_HOURLY_REQUEST_VARS = [
 _default_years = [1950, 2025]
 
 
-def _get_cdsapi_client() -> Any:
+def _get_cdsapi_client():
     """Create a CDS API client with a clear setup error if credentials are missing."""
     try:
-        import cdsapi
 
         return cdsapi.Client()
     except Exception as exc:

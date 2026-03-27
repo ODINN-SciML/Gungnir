@@ -17,6 +17,7 @@ workflow step to write ~/.cdsapirc before running pytest.
 import os
 import tempfile
 import pytest
+import glob
 import xarray as xr
 from gungnir import preprocessing_glaciers, emptyDir
 from gungnir.preprocessing import _cds_credentials_available
@@ -30,7 +31,6 @@ pytestmark = pytest.mark.skipif(
 
 def test_era5_file_generated(monkeypatch):
     """ERA5 preprocessing produces a monthly ERA5 file for a lightweight one-year request."""
-    import glob
 
     folderName = "Gungnir_era5_tests"
     working_dir = os.path.join(tempfile.gettempdir(), folderName)

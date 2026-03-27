@@ -65,7 +65,7 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
     if include_era5 is None:
         include_era5 = _cds_credentials_available()
         if not include_era5:
-            print("ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var).")
+            raise RuntimeError("ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var).")
 
     working_dir = _normalize_working_dir(working_dir)
     os.makedirs(working_dir, exist_ok=True)
