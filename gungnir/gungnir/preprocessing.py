@@ -3,7 +3,10 @@ from oggm import cfg, utils, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
+import argparse
+
 from gungnir.utils import read_glacier_names, remove_id_from_string
+from gungnir.era5_climate import ensure_era5_file_for_gdir, _default_years
 
 
 def _cds_credentials_available() -> bool:
@@ -42,15 +45,15 @@ def _normalize_working_dir(working_dir: str) -> str:
 
     return wd
 
-def preprocessing_file(file, working_dir=_default_working_dir, include_era5=None):
+def preprocessing_file(file, working_dir=_default_working_dir, include_era5=None, use_daily=False, years=_default_years):
     """
     Preprocess glaciers directly from file
     """
 
     rgi_ids = read_glacier_names(file)
-    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=include_era5)
+    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=include_era5, use_daily=use_daily, years=years)
 
-def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_era5=None):
+def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_era5=None, use_daily=False, years=_default_years):
     """
     Preprocessing of glaciers from a list of glaciers
 
@@ -117,10 +120,8 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         # which downloads hourly data, aggregates to daily and writes
         #   climate_historical_daily_ERA5.nc instead.
         if include_era5:
-            from gungnir.era5_climate import ensure_era5_file_for_gdir
-
             print(f"Generating ERA5 climate file for {gdir.rgi_id}")
-            era5_path = ensure_era5_file_for_gdir(gdir, use_daily=False, overwrite=False)
+            era5_path = ensure_era5_file_for_gdir(gdir, use_daily=use_daily, overwrite=False, years=years)
             print("ERA5 climate path:", era5_path)
 
         print("dem path: " , gdir.get_filepath("dem"))
@@ -139,11 +140,32 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
 
 if __name__ == "__main__":
 
-    print(sys.argv)
-    glacier_file = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("glacier_file", type=str, help="File containing list of glaciers to process.")
+    parser.add_argument(
+        "--working_dir",
+        type=str,
+        default=_default_working_dir,
+        help="Train on GPU. By default training runs on CPU.",
+    )
+    parser.add_argument(
+        "--use_daily",
+        type=bool,
+        default=False,
+        help="Generate daily ERA5 data.",
+    )
+    parser.add_argument(
+        "--years",
+        type=int,
+        default=_default_years,
+        nargs=2,
+        help="Years for the climate data.",
+    )
+    args = parser.parse_args()
 
-    if len(sys.argv) == 2:
-        preprocessing_file(glacier_file)
-    else:
-        working_dir = sys.argv[2]
-        preprocessing_file(glacier_file, working_dir=working_dir)
+    glacier_file = args.glacier_file
+    working_dir = args.working_dir
+    use_daily = args.use_daily
+    years = args.years
+
+    preprocessing_file(glacier_file, working_dir=working_dir, use_daily=use_daily, years=years)

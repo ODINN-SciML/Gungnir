@@ -32,16 +32,14 @@ def test_era5_file_generated(monkeypatch):
     """ERA5 preprocessing produces a monthly ERA5 file for a lightweight one-year request."""
     import glob
 
-    # Keep integration test lightweight while still exercising the full CDS path.
-    monkeypatch.setenv("GUNGNIR_ERA5_START_YEAR", "2020")
-    monkeypatch.setenv("GUNGNIR_ERA5_END_YEAR", "2020")
-
     folderName = "Gungnir_era5_tests"
     working_dir = os.path.join(tempfile.gettempdir(), folderName)
     emptyDir(working_dir)
 
+    # Keep integration test lightweight while still exercising the full CDS path.
     rgi_ids = ["RGI60-11.03646"]
-    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=True)
+    years = [2020, 2020]
+    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=True, years=years)
 
     era5_files = glob.glob(working_dir + "/**/climate_historical_monthly_ERA5.nc", recursive=True)
     assert len(era5_files) == len(rgi_ids), (

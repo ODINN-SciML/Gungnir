@@ -44,6 +44,8 @@ ERA5_HOURLY_REQUEST_VARS = [
     "surface_net_thermal_radiation",
 ]
 
+_default_years = [1950, 2025]
+
 
 def _get_cdsapi_client() -> Any:
     """Create a CDS API client with a clear setup error if credentials are missing."""
@@ -71,7 +73,7 @@ def _get_cdsapi_client() -> Any:
 
 def _normalize_era5_coords(ds: xr.Dataset) -> xr.Dataset:
     """Normalize coordinate and dimension names for ERA5 datasets.
-    
+
     ERA5 CDS API sometimes returns 'valid_time' instead of 'time', and may
     use 'lat'/'lon' instead of 'latitude'/'longitude'. This function standardizes
     to the latter for consistent downstream processing.
@@ -90,7 +92,7 @@ def _normalize_era5_coords(ds: xr.Dataset) -> xr.Dataset:
 
 def _extract_first_netcdf(zip_path: Path, out_dir: Path) -> Path:
     """Extract the first NetCDF file from a CDS-downloaded zip archive.
-    
+
     CDS downloads are zipped; this helper unzips and returns the first .nc file found.
     """
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -104,7 +106,7 @@ def _extract_first_netcdf(zip_path: Path, out_dir: Path) -> Path:
 
 def _cds_area_for_point(lat: float, lon: float, half_span_deg: float = 0.25) -> list:
     """Convert a point (lat, lon) to a CDS area bounding box.
-    
+
     CDS expects [north, west, south, east]. We buffer the point by half_span_deg.
     """
     north = float(np.clip(lat + half_span_deg, -90.0, 90.0))
@@ -116,10 +118,10 @@ def _cds_area_for_point(lat: float, lon: float, half_span_deg: float = 0.25) -> 
 
 def _download_era5_land_monthly_year(lat: float, lon: float, year: int, output_nc: Path):
     """Download monthly averaged ERA5-Land data for a given year.
-    
+
     Downloads from reanalysis-era5-land-monthly-means product. This is the lightweight
     default, as monthly data is much smaller than hourly.
-    
+
     Args:
         lat, lon: Glacier center coordinates
         year: Year to download (1950–present)
@@ -150,11 +152,11 @@ def _download_era5_land_monthly_year(lat: float, lon: float, year: int, output_n
 
 def _download_era5_land_hourly_year(lat: float, lon: float, year: int, output_nc: Path):
     """Download hourly ERA5-Land data for a given year.
-    
+
     Downloads from reanalysis-era5-land product (hourly). More data-intensive than
     monthly but useful for high temporal resolution analysis. Used only when
     use_daily=True is specified.
-    
+
     Args:
         lat, lon: Glacier center coordinates
         year: Year to download (1950–present)
@@ -186,7 +188,7 @@ def _download_era5_land_hourly_year(lat: float, lon: float, year: int, output_nc
 
 def _download_era5_land_geopotential(lat: float, lon: float, output_nc: Path):
     """Download ERA5-Land geopotential for altitude computation.
-    
+
     Retrieves monthly averaged geopotential from reanalysis-era5-land-monthly-means.
     This is used to compute the reference height (ref_hgt) for the glacier location.
     Only one year needed as it varies minimally; uses 2000 as reference.
@@ -276,19 +278,19 @@ def _monthly_to_monthly_point(monthly_ds: xr.Dataset, lat: float, lon: float) ->
 
 def _hourly_to_daily_point(hourly_ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
     """Convert hourly ERA5-Land data to daily forcing for Sleipnir.
-    
+
     Selects nearest grid point and aggregates hourly to daily using appropriate
     summary statistics (mean for temps/albedo, sum for precip/fluxes).
-    
+
     Args:
         hourly_ds: Hourly ERA5 dataset with dims=(time,) where time is hourly
         lat, lon: Glacier center coordinates
-        
+
     Returns:
         xr.Dataset with daily time dimension and Sleipnir-compatible variables
     """
     ds = _normalize_era5_coords(hourly_ds)
-    
+
     # Handle ensemble dimensions if present
     if "expver" in ds.dims:
         ds = ds.reduce(np.nansum, dim="expver")
@@ -328,21 +330,21 @@ def _hourly_to_daily_point(hourly_ds: xr.Dataset, lat: float, lon: float) -> xr.
 
 def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, lon: float) -> float:
     """Compute reference height from ERA5 geopotential field.
-    
+
     Converts ERA5 geopotential (m²/s²) to altitude (m) using the formula:
         altitude = r_earth * (z/g) / (r_earth - z/g)
-    
+
     This matches MassBalanceMachine's implementation for consistency.
-    
+
     Args:
         geopotential_ds: Dataset containing geopotential variable 'z'
         lat, lon: Glacier center coordinates
-        
+
     Returns:
         Altitude in meters
     """
     ds = _normalize_era5_coords(geopotential_ds)
-    
+
     # Handle ensemble dimension
     if "expver" in ds.dims:
         ds = ds.reduce(np.nansum, dim="expver")
@@ -358,36 +360,7 @@ def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, 
     return float(altitude)
 
 
-def _get_era5_year_range():
-    """Get the range of available ERA5 years.
-
-    By default ERA5-Land monthly data is requested from 1950 to the current year.
-    For lightweight integration tests, the range can be overridden with:
-
-      - GUNGNIR_ERA5_START_YEAR
-      - GUNGNIR_ERA5_END_YEAR
-
-    Returns:
-        (start_year, end_year)
-    """
-    default_start_year = 1950
-    default_end_year = datetime.utcnow().year
-
-    start_env = os.environ.get("GUNGNIR_ERA5_START_YEAR")
-    end_env = os.environ.get("GUNGNIR_ERA5_END_YEAR")
-
-    start_year = int(start_env) if start_env is not None else default_start_year
-    end_year = int(end_env) if end_env is not None else default_end_year
-
-    if start_year > end_year:
-        raise ValueError(
-            f"Invalid ERA5 year range: start_year ({start_year}) > end_year ({end_year})."
-        )
-
-    return start_year, end_year
-
-
-def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = False) -> str:
+def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = False, years:list[int] = _default_years) -> str:
     """Generate an ERA5 climate NetCDF file compatible with Sleipnir.
 
     Downloads ERA5-Land data and writes a file that Sleipnir's ``get_raw_climate_data``
@@ -429,7 +402,7 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
 
     lat = float(gdir.cenlat)
     lon = float(gdir.cenlon)
-    start_year, end_year = _get_era5_year_range()
+    start_year, end_year = years
 
     yearly_datasets = []
 
@@ -457,14 +430,14 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
     geopotential_nc = cache_dir / "era5_land_geopotential.nc"
     if overwrite or not geopotential_nc.exists():
         _download_era5_land_geopotential(lat, lon, geopotential_nc)
-    
+
     geopotential_ds = xr.open_dataset(geopotential_nc)
     ref_hgt = _compute_ref_hgt_from_geopotential(geopotential_ds, lat, lon)
 
     # Extract year range from data
     hydro_yr_0 = int(pd.to_datetime(era5_daily.time.values).year.min())
     hydro_yr_1 = int(pd.to_datetime(era5_daily.time.values).year.max())
-    
+
     # Set metadata attributes (Sleipnir expects these)
     era5_daily.attrs = {
         "author": "Gungnir",

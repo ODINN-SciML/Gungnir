@@ -28,6 +28,7 @@ dependencies:
   - shapely
   - xarray
   - cdsapi
+  - argparse
   - pip:
     - joblib
     - progressbar2
