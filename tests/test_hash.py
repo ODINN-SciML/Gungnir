@@ -25,7 +25,7 @@ def test_hash():
 
     rgi_ids = ["RGI60-11.03646"]
     # ERA5 is disabled so the hash is stable in CI without CDS credentials.
-    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=False)
+    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=False, test=True)
 
     files = glob.glob(working_dir+"/**/*", recursive=True)
     checksums = {}

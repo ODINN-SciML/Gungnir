@@ -4,9 +4,11 @@ from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os
 import argparse
+from pathlib import Path
 
-from gungnir.utils import read_glacier_names, remove_id_from_string
-from gungnir.era5_climate import ensure_era5_file_for_gdir, _default_years
+import gungnir.utils
+from gungnir.era5_climate import _default_years
+import gungnir.era5_climate
 
 
 def _cds_credentials_available() -> bool:
@@ -50,10 +52,10 @@ def preprocessing_file(file, working_dir=_default_working_dir, include_era5=None
     Preprocess glaciers directly from file
     """
 
-    rgi_ids = read_glacier_names(file)
+    rgi_ids = gungnir.utils.read_glacier_names(file)
     preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=include_era5, use_daily=use_daily, years=years)
 
-def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_era5=None, use_daily=False, years=_default_years):
+def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_era5=None, use_daily=False, years=_default_years, test=False):
     """
     Preprocessing of glaciers from a list of glaciers
 
@@ -61,11 +63,9 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         - rgi_ids: List of glaciers and/or regions to process. E.g., rgi_ids = ['RGI60-11.00897', 'RGI60-11.01270']
     """
 
-    # Auto-detect ERA5 capability when not explicitly requested
-    if include_era5 is None:
-        include_era5 = _cds_credentials_available()
-        if not include_era5:
-            raise RuntimeError("ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var).")
+    # Check ERA5 capability if this is needed
+    if include_era5 and not test:
+        assert _cds_credentials_available(), "ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var)."
 
     working_dir = _normalize_working_dir(working_dir)
     os.makedirs(working_dir, exist_ok=True)
@@ -102,13 +102,32 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
     for task in list_tasks:
         workflow.execute_entity_task(task, gdirs)
 
+    if include_era5 and not use_daily:
+        regions = []
+        for gdir in gdirs:
+            rgi_id = gdir.rgi_id
+            rgi_version = rgi_id.split('-')[0].replace("RGI", "")
+            assert rgi_version=="60", "RGI version must be RGI60"
+            region_id = rgi_id.split('-')[1].split('.')[0]
+            if region_id not in regions:
+                regions.append(region_id)
+        for region in regions:
+            if not test:
+                gungnir.era5_climate.ensure_era5_file_for_region(region, years_range=years)
+            else:
+                cache_path = os.path.join(gungnir.era5_climate.gungnir_path, ".cache_sample")
+                monthly_nc = Path(cache_path) / "ERA5" / f"era5_land_monthly_region_{region}.nc"
+                geopotential_nc = Path(cache_path) / "ERA5" / f"era5_land_geopotential_region_{region}.nc"
+                assert monthly_nc.exists(), f"The monthly netcdf does not exist in {cache_path}"
+                assert geopotential_nc.exists(), f"The geopotential netcdf does not exist in {cache_path}"
+
     ### Then we retrieve all the necessary climate data ###
     rgi_paths = {}
     rgi_names = {}
     for gdir in gdirs: # TODO: change to parallel processing by creating an entity task
         # We store all the paths for each RGI ID to be retrieved later on in ODINN
         rgi_paths[gdir.rgi_id] = os.path.relpath(gdir.dir, working_dir)
-        rgi_names[gdir.rgi_id] = remove_id_from_string(gdir.name)
+        rgi_names[gdir.rgi_id] = gungnir.utils.remove_id_from_string(gdir.name)
 
         process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
 
@@ -116,12 +135,15 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         # Default (use_daily=False): downloads monthly data and writes
         #   climate_historical_monthly_ERA5.nc  (lightweight, read natively by Sleipnir).
         # For daily resolution (e.g. W5E5-compatible workflows) use:
-        #   era5_path = ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
+        #   era5_path = gungnir.era5_climate.ensure_era5_file_for_gdir(gdir, use_daily=True, overwrite=False)
         # which downloads hourly data, aggregates to daily and writes
         #   climate_historical_daily_ERA5.nc instead.
         if include_era5:
             print(f"Generating ERA5 climate file for {gdir.rgi_id}")
-            era5_path = ensure_era5_file_for_gdir(gdir, use_daily=use_daily, overwrite=False, years=years)
+            kwargs = {"use_daily": use_daily, "years_range": years}
+            if test:
+                kwargs["cache_path"] = cache_path
+            era5_path = gungnir.era5_climate.ensure_era5_file_for_gdir(gdir, **kwargs)
             print("ERA5 climate path:", era5_path)
 
         print("dem path: " , gdir.get_filepath("dem"))
@@ -149,9 +171,13 @@ if __name__ == "__main__":
         help="Train on GPU. By default training runs on CPU.",
     )
     parser.add_argument(
+        "--noera5",
+        action="store_true",
+        help="Do not include ERA5 data.",
+    )
+    parser.add_argument(
         "--use_daily",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Generate daily ERA5 data.",
     )
     parser.add_argument(
@@ -165,7 +191,8 @@ if __name__ == "__main__":
 
     glacier_file = args.glacier_file
     working_dir = args.working_dir
+    include_era5 = not args.noera5
     use_daily = args.use_daily
     years = args.years
 
-    preprocessing_file(glacier_file, working_dir=working_dir, use_daily=use_daily, years=years)
+    preprocessing_file(glacier_file, working_dir=working_dir, include_era5=include_era5, use_daily=use_daily, years=years)

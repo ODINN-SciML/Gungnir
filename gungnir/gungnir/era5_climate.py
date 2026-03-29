@@ -17,11 +17,15 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 import cdsapi
-
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import xarray as xr
+import oggm.utils
 
+
+gungnir_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+_default_cache_path = os.path.join(gungnir_path, ".cache")
 
 # ERA5-Land variables required by Sleipnir.
 ERA5_MONTHLY_REQUEST_VARS = [
@@ -115,22 +119,47 @@ def _cds_area_for_point(lat: float, lon: float, half_span_deg: float = 0.25) -> 
     return [north, west, south, east]
 
 
-def _download_era5_land_monthly_year(lat: float, lon: float, year: int, output_nc: Path):
-    """Download monthly averaged ERA5-Land data for a given year.
+def get_region_shape_file(region: str):
+    rgi_version = "62"
+    shp_path = oggm.utils.get_rgi_region_file(region, version=rgi_version)
+    print(f"Shapefile for region {region}: {shp_path}")
+    return shp_path
+
+
+def get_region_area_bounds(region):
+    if not isinstance(region, str):
+        region = f"{region:02d}"
+    shp_path = get_region_shape_file(region)
+    outlines = gpd.read_file(shp_path)
+    minlon, minlat, maxlon, maxlat = outlines.total_bounds
+    return {
+        "lon": (minlon, maxlon),
+        "lat": (minlat, maxlat),
+    }
+
+
+def _download_era5_land_monthly_year(region: str, years: list[int], output_nc: Path):
+    """Download monthly averaged ERA5-Land data for given years.
 
     Downloads from reanalysis-era5-land-monthly-means product. This is the lightweight
     default, as monthly data is much smaller than hourly.
 
     Args:
-        lat, lon: Glacier center coordinates
-        year: Year to download (1950–present)
+        region: Region ID
+        years: Years to download
         output_nc: Path to save extracted NetCDF
     """
-    area = _cds_area_for_point(lat, lon)
+    bounds = get_region_area_bounds(region)
+    area = [
+        np.ceil(bounds["lat"][1]),  # north
+        np.floor(bounds["lon"][0]),  # west
+        np.floor(bounds["lat"][0]),  # south
+        np.ceil(bounds["lon"][1]),  # east
+    ]
     request = {
         "product_type": ["monthly_averaged_reanalysis"],
         "variable": ERA5_MONTHLY_REQUEST_VARS,
-        "year": [str(year)],
+        "year": years,
         "month": [f"{m:02d}" for m in range(1, 13)],
         "time": ["00:00"],
         "data_format": "netcdf",
@@ -138,9 +167,9 @@ def _download_era5_land_monthly_year(lat: float, lon: float, year: int, output_n
         "area": area,
     }
 
-    with tempfile.TemporaryDirectory(prefix=f"era5_monthly_{year}_") as tmp_dir_str:
+    with tempfile.TemporaryDirectory(prefix=f"era5_monthly_") as tmp_dir_str:
         tmp_dir = Path(tmp_dir_str)
-        zip_path = tmp_dir / f"era5_land_monthly_{year}.zip"
+        zip_path = tmp_dir / f"era5_land_monthly.zip"
         client = _get_cdsapi_client()
         client.retrieve("reanalysis-era5-land-monthly-means", request, str(zip_path))
         extracted_nc = _extract_first_netcdf(zip_path, tmp_dir)
@@ -153,12 +182,12 @@ def _download_era5_land_hourly_year(lat: float, lon: float, year: int, output_nc
     """Download hourly ERA5-Land data for a given year.
 
     Downloads from reanalysis-era5-land product (hourly). More data-intensive than
-    monthly but useful for high temporal resolution analysis. Used only when
-    use_daily=True is specified.
+    monthly but useful for high temporal resolution analysis.
+    This is downloaded year per year otherwise requests are too large and are rejected by the CDS.
 
     Args:
         lat, lon: Glacier center coordinates
-        year: Year to download (1950–present)
+        year: Year to download
         output_nc: Path to save extracted NetCDF
     """
     area = _cds_area_for_point(lat, lon)
@@ -185,14 +214,20 @@ def _download_era5_land_hourly_year(lat: float, lon: float, year: int, output_nc
         ds.to_netcdf(output_nc)
 
 
-def _download_era5_land_geopotential(lat: float, lon: float, output_nc: Path):
+def _download_era5_land_geopotential(region: str, output_nc: Path):
     """Download ERA5-Land geopotential for altitude computation.
 
     Retrieves monthly averaged geopotential from reanalysis-era5-land-monthly-means.
     This is used to compute the reference height (ref_hgt) for the glacier location.
     Only one year needed as it varies minimally; uses 2000 as reference.
     """
-    area = _cds_area_for_point(lat, lon)
+    bounds = get_region_area_bounds(region)
+    area = [
+        np.ceil(bounds["lat"][1]),  # north
+        np.floor(bounds["lon"][0]),  # west
+        np.floor(bounds["lat"][0]),  # south
+        np.ceil(bounds["lon"][1]),  # east
+    ]
     request = {
         "product_type": ["monthly_averaged_reanalysis"],
         "variable": ["geopotential"],
@@ -348,6 +383,12 @@ def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, 
     if "expver" in ds.dims:
         ds = ds.reduce(np.nansum, dim="expver")
 
+    # Correct non monotonous longitude
+    if not (np.diff(ds.longitude)>0).all():
+        ds = ds.assign_coords(
+            longitude=((ds.longitude + 180) % 360) - 180
+        ).sortby("longitude")
+
     # Select nearest grid point and average over time
     point = ds.sel(latitude=lat, longitude=lon, method="nearest")
     z = float(point["z"].mean().values)
@@ -359,13 +400,13 @@ def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, 
     return float(altitude)
 
 
-def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = False, years:list[int] = _default_years) -> str:
+def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = False, years_range:list[int] = _default_years, cache_path=_default_cache_path) -> str:
     """Generate an ERA5 climate NetCDF file compatible with Sleipnir.
 
     Downloads ERA5-Land data and writes a file that Sleipnir's ``get_raw_climate_data``
     can ingest directly.
 
-    * ``use_daily=False`` (default): downloads monthly averaged reanalysis data and
+    * ``use_daily=False`` (default): uses the already downloaded monthly averaged reanalysis data and
       writes ``climate_historical_monthly_ERA5.nc``.  Monthly values are kept as-is;
       no interpolation to daily is performed.  Sleipnir checks for this file first
       and processes it natively at monthly resolution.
@@ -382,7 +423,9 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
         gdir: GlacierDirectory from OGGM with .dir, .cenlat, .cenlon attributes.
         use_daily: If False (default), produce a lightweight monthly file.
                    If True, produce a daily file from hourly downloads.
+        years_range: Range of years for which climate data should be generated.
         overwrite: If False (default), skip if output file already exists.
+        cache_path: Path of the folder where to store the downloaded ERA5 files.
 
     Returns:
         Path to the generated climate NetCDF file (as string).
@@ -396,40 +439,43 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
         return str(out_era5)
 
     # Create cache directory for intermediate downloads
-    cache_dir = Path(gdir.dir) / "era5_cds_cache"
+    cache_dir = Path(cache_path) / "ERA5"
+    cache_dir_gdir = cache_dir / gdir.rgi_id
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     lat = float(gdir.cenlat)
     lon = float(gdir.cenlon)
-    start_year, end_year = years
+    start_year, end_year = years_range
+    years = list(map(str, range(start_year, end_year+1)))
+    rgi_id = gdir.rgi_id
+    rgi_version = rgi_id.split('-')[0].replace("RGI", "")
+    region_id = rgi_id.split('-')[1].split('.')[0]
 
     yearly_datasets = []
 
     if use_daily:
         # High-resolution hourly → daily mode
+        # To download glacier per glacier and year per year
         for year in range(start_year, end_year + 1):
-            yearly_nc = cache_dir / f"era5_land_hourly_{year}.nc"
+            yearly_nc = cache_dir_gdir / f"era5_land_hourly_{year}.nc"
             if overwrite or not yearly_nc.exists():
                 _download_era5_land_hourly_year(lat, lon, year, yearly_nc)
             hourly_ds = xr.open_dataset(yearly_nc)
             yearly_datasets.append(_hourly_to_daily_point(hourly_ds, lat, lon))
     else:
         # Default lightweight monthly mode — no daily expansion
+        # Already downloaded for the whole region
+        yearly_nc = cache_dir / f"era5_land_monthly_region_{region_id}.nc"
+        monthly_ds = xr.open_dataset(yearly_nc)
         for year in range(start_year, end_year + 1):
-            yearly_nc = cache_dir / f"era5_land_monthly_{year}.nc"
-            if overwrite or not yearly_nc.exists():
-                _download_era5_land_monthly_year(lat, lon, year, yearly_nc)
-            monthly_ds = xr.open_dataset(yearly_nc)
-            yearly_datasets.append(_monthly_to_monthly_point(monthly_ds, lat, lon))
+            yearly_datasets.append(_monthly_to_monthly_point(monthly_ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31")), lat, lon))
 
     # Concatenate yearly datasets into single timeseries
     era5_daily = xr.concat(yearly_datasets, dim="time").sortby("time")
 
     # Compute reference height from geopotential
-    geopotential_nc = cache_dir / "era5_land_geopotential.nc"
-    if overwrite or not geopotential_nc.exists():
-        _download_era5_land_geopotential(lat, lon, geopotential_nc)
-
+    # Already downloaded for the whole region
+    geopotential_nc = cache_dir / f"era5_land_geopotential_region_{region_id}.nc"
     geopotential_ds = xr.open_dataset(geopotential_nc)
     ref_hgt = _compute_ref_hgt_from_geopotential(geopotential_ds, lat, lon)
 
@@ -455,3 +501,33 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
     era5_daily.to_netcdf(out_era5, encoding=encoding)
 
     return str(out_era5)
+
+
+def ensure_era5_file_for_region(region, use_daily: bool = False, overwrite: bool = False, years_range:list[int] = _default_years, cache_path=_default_cache_path):
+    """Download ERA5 climate NetCDF file at the monthly resolution for a whole region.
+
+    Args:
+        region (str): Region ID.
+        overwrite: If False (default), skip if output file already exists.
+        years_range: Range of years for which climate data should be generated.
+        cache_path: Path of the folder where to store the downloaded ERA5 files.
+    """
+    # Create cache directory for intermediate downloads
+    cache_dir = Path(cache_path) / "ERA5"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # lat = float(gdir.cenlat)
+    # lon = float(gdir.cenlon)
+    start_year, end_year = years_range
+    years = list(map(str, range(start_year, end_year+1)))
+
+    if not use_daily:
+        # Default lightweight monthly mode — no daily expansion
+        yearly_nc = cache_dir / f"era5_land_monthly_region_{region}.nc"
+        if overwrite or not yearly_nc.exists():
+            _download_era5_land_monthly_year(region, years, yearly_nc)
+
+    # Compute reference height from geopotential
+    geopotential_nc = cache_dir / f"era5_land_geopotential_region_{region}.nc"
+    if overwrite or not geopotential_nc.exists():
+        _download_era5_land_geopotential(region, geopotential_nc)
