@@ -1,5 +1,5 @@
 import sys
-from oggm import cfg, utils, workflow, tasks, global_tasks
+from oggm import cfg, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
 import json, os

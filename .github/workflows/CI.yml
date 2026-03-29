@@ -2,6 +2,11 @@ name: Run Unit Test via Pytest
 
 on: [push]
 
+permissions:
+  # needed to allow actions to create and delete old caches
+  actions: write
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04 # Force ubuntu version since hash is version dependent
@@ -28,4 +33,8 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: |
-          pytest -v -s
+          python -m pytest --cov --cov-report xml
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
