@@ -23,7 +23,6 @@ import geopandas as gpd
 import xarray as xr
 import oggm.utils
 
-
 gungnir_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 _default_cache_path = os.path.join(gungnir_path, ".cache")
 

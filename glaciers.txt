@@ -20,6 +20,8 @@ RGI60-11.02346;  # [no name] -> very small glacier near the Swiss border close t
 RGI60-11.00695;  # Glatschiu dil segnas
 RGI60-11.03005;  # Miage
 RGI60-11.03001;  # Brenva
+RGI60-11.01473;
+RGI60-11.00597;
 
 # France, Mont Blanc
 RGI60-11.03643;  # Mer de Glace/Geant
@@ -52,10 +54,35 @@ RGI60-11.01450;  # Aletsch
 RGI60-11.01733;  # Hangend
 RGI60-11.01328;  # Unteraar
 RGI60-11.01238;  # Rhone
+RGI60-11.02072;
+RGI60-11.02773;
+RGI60-11.02249;  # Tsanfleuron
+RGI60-11.01702;  # Kander
+RGI60-11.00872;  # Hüfi
+RGI60-11.02774;  # Giétro
+RGI60-11.01876;  # Gries
+RGI60-11.02746;  # Schwarzberg
+RGI60-11.02819;
+RGI60-11.02801;
+RGI60-11.02810;  # Arolla
+RGI60-11.02775;  # Orny
+RGI60-11.02507;  # Brunegg
+RGI60-11.00804;  # Silvretta
+RGI60-11.00752;  # Vorab
+RGI60-11.02704;
+RGI60-11.02787;  # Mont Collon
+RGI60-11.02195;
+RGI60-11.01791;
+RGI60-11.02739;
+RGI60-11.01267;  # Porchabella
+RGI60-11.02634;  # Prafleuri
 
 # Austria
 RGI60-11.00897;  # Hintereisferner
 RGI60-11.00787;  # Kesselwandferner
+RGI60-11.00746;
+RGI60-11.00666;
+RGI60-11.00887;
 
 # Canada
 RGI60-04.04351;  # Glacier on SE Baffin Island
