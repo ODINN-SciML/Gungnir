@@ -1,4 +1,5 @@
 [![Build Status](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/ODINN-SciML/Gungnir/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ODINN-SciML/Gungnir)
 
 <img src="https://github.com/ODINN-SciML/Gungnir/blob/main/data/gungnir_logo.png" width="250">
 
@@ -98,3 +99,8 @@ Metadata includes `ref_hgt` (derived from CDS geopotential), `ref_pix_lat/lon`, 
 
 ERA5 download requires a CDS API key configured in `~/.cdsapirc`. See:
 https://cds.climate.copernicus.eu/how-to-api
+
+## Code formatting
+
+We use `black` to format the code of Gungnir.
+Please refer to the [Mass Balance Machine documentation](https://massbalancemachine.readthedocs.io/en/latest/contributing.html#formatting-the-code) for instructions on how to install the code formatter locally.
