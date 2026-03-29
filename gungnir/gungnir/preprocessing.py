@@ -42,20 +42,43 @@ def _normalize_working_dir(working_dir: str) -> str:
     # Redirect to ~/.ODINN/ODINN_prepro, which is where Sleipnir looks.
     if wd == odinn_root or wd == os.path.join(odinn_root, "per_glacier"):
         target = _default_working_dir
-        print(f"Normalizing working_dir from '{wd}' to '{target}' for Sleipnir compatibility.")
+        print(
+            f"Normalizing working_dir from '{wd}' to '{target}' for Sleipnir compatibility."
+        )
         return target
 
     return wd
 
-def preprocessing_file(file, working_dir=_default_working_dir, include_era5=None, use_daily=False, years=_default_years):
+
+def preprocessing_file(
+    file,
+    working_dir=_default_working_dir,
+    include_era5=None,
+    use_daily=False,
+    years=_default_years,
+):
     """
     Preprocess glaciers directly from file
     """
 
     rgi_ids = gungnir.utils.read_glacier_names(file)
-    preprocessing_glaciers(rgi_ids, working_dir=working_dir, include_era5=include_era5, use_daily=use_daily, years=years)
+    preprocessing_glaciers(
+        rgi_ids,
+        working_dir=working_dir,
+        include_era5=include_era5,
+        use_daily=use_daily,
+        years=years,
+    )
 
-def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_era5=None, use_daily=False, years=_default_years, test=False):
+
+def preprocessing_glaciers(
+    rgi_ids,
+    working_dir=_default_working_dir,
+    include_era5=None,
+    use_daily=False,
+    years=_default_years,
+    test=False,
+):
     """
     Preprocessing of glaciers from a list of glaciers
 
@@ -65,39 +88,43 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
 
     # Check ERA5 capability if this is needed
     if include_era5 and not test:
-        assert _cds_credentials_available(), "ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var)."
+        assert (
+            _cds_credentials_available()
+        ), "ERA5 download skipped: no CDS API credentials found (~/.cdsapirc or CDSAPI_KEY env var)."
 
     working_dir = _normalize_working_dir(working_dir)
     os.makedirs(working_dir, exist_ok=True)
 
-    base_url = 'https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/'
+    base_url = "https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/"
 
     print("Working directory:", working_dir)
 
     cfg.initialize()
 
     # Settings
-    cfg.PATHS['working_dir'] = working_dir
-    cfg.PARAMS['use_multiprocessing'] = True # use all available CPUs
-    cfg.PARAMS['border'] = 10
-    cfg.PARAMS['hydro_month_nh'] = 1
-    cfg.PARAMS['dl_verify'] = False
-    cfg.PARAMS['continue_on_error'] = True
+    cfg.PATHS["working_dir"] = working_dir
+    cfg.PARAMS["use_multiprocessing"] = True  # use all available CPUs
+    cfg.PARAMS["border"] = 10
+    cfg.PARAMS["hydro_month_nh"] = 1
+    cfg.PARAMS["dl_verify"] = False
+    cfg.PARAMS["continue_on_error"] = True
 
     # Now we initialize the glacier directories
-    gdirs = workflow.init_glacier_directories(rgi_ids,
-                                              prepro_base_url=base_url,
-                                              from_prepro_level=2)
+    gdirs = workflow.init_glacier_directories(
+        rgi_ids, prepro_base_url=base_url, from_prepro_level=2
+    )
 
     # We execute the entity tasks
-    list_tasks = [tasks.gridded_attributes,
-                  tasks.glacier_masks,
-                  tasks.compute_centerlines,
-                  tasks.initialize_flowlines,
-                  bedtopo.add_consensus_thickness,
-                  millan22.thickness_to_gdir,
-                  millan22.velocity_to_gdir,
-                  glathida.glathida_to_gdir]
+    list_tasks = [
+        tasks.gridded_attributes,
+        tasks.glacier_masks,
+        tasks.compute_centerlines,
+        tasks.initialize_flowlines,
+        bedtopo.add_consensus_thickness,
+        millan22.thickness_to_gdir,
+        millan22.velocity_to_gdir,
+        glathida.glathida_to_gdir,
+    ]
 
     for task in list_tasks:
         workflow.execute_entity_task(task, gdirs)
@@ -106,30 +133,44 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
         regions = []
         for gdir in gdirs:
             rgi_id = gdir.rgi_id
-            rgi_version = rgi_id.split('-')[0].replace("RGI", "")
-            assert rgi_version=="60", "RGI version must be RGI60"
-            region_id = rgi_id.split('-')[1].split('.')[0]
+            rgi_version = rgi_id.split("-")[0].replace("RGI", "")
+            assert rgi_version == "60", "RGI version must be RGI60"
+            region_id = rgi_id.split("-")[1].split(".")[0]
             if region_id not in regions:
                 regions.append(region_id)
         for region in regions:
             if not test:
-                gungnir.era5_climate.ensure_era5_file_for_region(region, years_range=years)
+                gungnir.era5_climate.ensure_era5_file_for_region(
+                    region, years_range=years
+                )
             else:
-                cache_path = os.path.join(gungnir.era5_climate.gungnir_path, ".cache_sample")
-                monthly_nc = Path(cache_path) / "ERA5" / f"era5_land_monthly_region_{region}.nc"
-                geopotential_nc = Path(cache_path) / "ERA5" / f"era5_land_geopotential_region_{region}.nc"
-                assert monthly_nc.exists(), f"The monthly netcdf does not exist in {cache_path}"
-                assert geopotential_nc.exists(), f"The geopotential netcdf does not exist in {cache_path}"
+                cache_path = os.path.join(
+                    gungnir.era5_climate.gungnir_path, ".cache_sample"
+                )
+                monthly_nc = (
+                    Path(cache_path) / "ERA5" / f"era5_land_monthly_region_{region}.nc"
+                )
+                geopotential_nc = (
+                    Path(cache_path)
+                    / "ERA5"
+                    / f"era5_land_geopotential_region_{region}.nc"
+                )
+                assert (
+                    monthly_nc.exists()
+                ), f"The monthly netcdf does not exist in {cache_path}"
+                assert (
+                    geopotential_nc.exists()
+                ), f"The geopotential netcdf does not exist in {cache_path}"
 
     ### Then we retrieve all the necessary climate data ###
     rgi_paths = {}
     rgi_names = {}
-    for gdir in gdirs: # TODO: change to parallel processing by creating an entity task
+    for gdir in gdirs:  # TODO: change to parallel processing by creating an entity task
         # We store all the paths for each RGI ID to be retrieved later on in ODINN
         rgi_paths[gdir.rgi_id] = os.path.relpath(gdir.dir, working_dir)
         rgi_names[gdir.rgi_id] = gungnir.utils.remove_id_from_string(gdir.name)
 
-        process_w5e5_data(gdir, climate_type='W5E5', temporal_resol='daily')
+        process_w5e5_data(gdir, climate_type="W5E5", temporal_resol="daily")
 
         # Build an ERA5 climate file directly from CDS.
         # Default (use_daily=False): downloads monthly data and writes
@@ -146,16 +187,18 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
             era5_path = gungnir.era5_climate.ensure_era5_file_for_gdir(gdir, **kwargs)
             print("ERA5 climate path:", era5_path)
 
-        print("dem path: " , gdir.get_filepath("dem"))
+        print("dem path: ", gdir.get_filepath("dem"))
 
-    with open(working_dir + '/rgi_paths.json', 'w') as f:
+    with open(working_dir + "/rgi_paths.json", "w") as f:
         json.dump(rgi_paths, f)
-    with open(working_dir + '/rgi_names.json', 'w') as f:
+    with open(working_dir + "/rgi_names.json", "w") as f:
         json.dump(rgi_names, f)
 
     # Verify that glaciers have no missing data
-    task_log = global_tasks.compile_task_log(gdirs,
-                                            task_names=["gridded_attributes", "velocity_to_gdir", "thickness_to_gdir"])
+    task_log = global_tasks.compile_task_log(
+        gdirs,
+        task_names=["gridded_attributes", "velocity_to_gdir", "thickness_to_gdir"],
+    )
 
     task_log.to_csv(os.path.join(working_dir, "task_log.csv"))
 
@@ -163,7 +206,9 @@ def preprocessing_glaciers(rgi_ids, working_dir=_default_working_dir, include_er
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("glacier_file", type=str, help="File containing list of glaciers to process.")
+    parser.add_argument(
+        "glacier_file", type=str, help="File containing list of glaciers to process."
+    )
     parser.add_argument(
         "--working_dir",
         type=str,
@@ -195,4 +240,10 @@ if __name__ == "__main__":
     use_daily = args.use_daily
     years = args.years
 
-    preprocessing_file(glacier_file, working_dir=working_dir, include_era5=include_era5, use_daily=use_daily, years=years)
+    preprocessing_file(
+        glacier_file,
+        working_dir=working_dir,
+        include_era5=include_era5,
+        use_daily=use_daily,
+        years=years,
+    )

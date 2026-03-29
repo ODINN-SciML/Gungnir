@@ -250,7 +250,9 @@ def _download_era5_land_geopotential(region: str, output_nc: Path):
         ds.to_netcdf(output_nc)
 
 
-def _monthly_to_monthly_point(monthly_ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
+def _monthly_to_monthly_point(
+    monthly_ds: xr.Dataset, lat: float, lon: float
+) -> xr.Dataset:
     """Process monthly ERA5-Land data into a Sleipnir-compatible monthly climate dataset.
 
     Selects nearest grid point and applies unit conversions while keeping the monthly
@@ -284,26 +286,26 @@ def _monthly_to_monthly_point(monthly_ds: xr.Dataset, lat: float, lon: float) ->
 
     # Unit conversions
     temp = (point["t2m"] - 273.15).astype(np.float32)  # K → °C
-    prcp = point["tp"].astype(np.float32)               # m, monthly total
-    fal  = point["fal"].astype(np.float32)              # 0-1, monthly mean
-    slhf = point["slhf"].astype(np.float32)             # J/m², monthly total
-    sshf = point["sshf"].astype(np.float32)             # J/m², monthly total
-    ssrd = point["ssrd"].astype(np.float32)             # J/m², monthly total
-    str_ = point["str"].astype(np.float32)              # J/m², monthly total
+    prcp = point["tp"].astype(np.float32)  # m, monthly total
+    fal = point["fal"].astype(np.float32)  # 0-1, monthly mean
+    slhf = point["slhf"].astype(np.float32)  # J/m², monthly total
+    sshf = point["sshf"].astype(np.float32)  # J/m², monthly total
+    ssrd = point["ssrd"].astype(np.float32)  # J/m², monthly total
+    str_ = point["str"].astype(np.float32)  # J/m², monthly total
 
     # Constant lapse rate (same value used in the daily path)
     gradient = xr.full_like(temp, fill_value=np.float32(-0.0065), dtype=np.float32)
 
     out = xr.Dataset(
         {
-            "temp":     (["time"], temp.values,     {"units": "°C"}),
-            "prcp":     (["time"], prcp.values,     {"units": "m"}),
+            "temp": (["time"], temp.values, {"units": "°C"}),
+            "prcp": (["time"], prcp.values, {"units": "m"}),
             "gradient": (["time"], gradient.values, {"units": "K/m"}),
-            "fal":      (["time"], fal.values,      {"units": "0-1"}),
-            "slhf":     (["time"], slhf.values,     {"units": "J/m²"}),
-            "sshf":     (["time"], sshf.values,     {"units": "J/m²"}),
-            "ssrd":     (["time"], ssrd.values,     {"units": "J/m²"}),
-            "str":      (["time"], str_.values,     {"units": "J/m²"}),
+            "fal": (["time"], fal.values, {"units": "0-1"}),
+            "slhf": (["time"], slhf.values, {"units": "J/m²"}),
+            "sshf": (["time"], sshf.values, {"units": "J/m²"}),
+            "ssrd": (["time"], ssrd.values, {"units": "J/m²"}),
+            "str": (["time"], str_.values, {"units": "J/m²"}),
         },
         coords={"time": point.time.values},
     )
@@ -362,7 +364,9 @@ def _hourly_to_daily_point(hourly_ds: xr.Dataset, lat: float, lon: float) -> xr.
     return out
 
 
-def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, lon: float) -> float:
+def _compute_ref_hgt_from_geopotential(
+    geopotential_ds: xr.Dataset, lat: float, lon: float
+) -> float:
     """Compute reference height from ERA5 geopotential field.
 
     Converts ERA5 geopotential (m²/s²) to altitude (m) using the formula:
@@ -384,10 +388,10 @@ def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, 
         ds = ds.reduce(np.nansum, dim="expver")
 
     # Correct non monotonous longitude
-    if not (np.diff(ds.longitude)>0).all():
-        ds = ds.assign_coords(
-            longitude=((ds.longitude + 180) % 360) - 180
-        ).sortby("longitude")
+    if not (np.diff(ds.longitude) > 0).all():
+        ds = ds.assign_coords(longitude=((ds.longitude + 180) % 360) - 180).sortby(
+            "longitude"
+        )
 
     # Select nearest grid point and average over time
     point = ds.sel(latitude=lat, longitude=lon, method="nearest")
@@ -400,7 +404,13 @@ def _compute_ref_hgt_from_geopotential(geopotential_ds: xr.Dataset, lat: float, 
     return float(altitude)
 
 
-def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = False, years_range:list[int] = _default_years, cache_path=_default_cache_path) -> str:
+def ensure_era5_file_for_gdir(
+    gdir,
+    use_daily: bool = False,
+    overwrite: bool = False,
+    years_range: list[int] = _default_years,
+    cache_path=_default_cache_path,
+) -> str:
     """Generate an ERA5 climate NetCDF file compatible with Sleipnir.
 
     Downloads ERA5-Land data and writes a file that Sleipnir's ``get_raw_climate_data``
@@ -446,10 +456,10 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
     lat = float(gdir.cenlat)
     lon = float(gdir.cenlon)
     start_year, end_year = years_range
-    years = list(map(str, range(start_year, end_year+1)))
+    years = list(map(str, range(start_year, end_year + 1)))
     rgi_id = gdir.rgi_id
-    rgi_version = rgi_id.split('-')[0].replace("RGI", "")
-    region_id = rgi_id.split('-')[1].split('.')[0]
+    rgi_version = rgi_id.split("-")[0].replace("RGI", "")
+    region_id = rgi_id.split("-")[1].split(".")[0]
 
     yearly_datasets = []
 
@@ -468,7 +478,13 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
         yearly_nc = cache_dir / f"era5_land_monthly_region_{region_id}.nc"
         monthly_ds = xr.open_dataset(yearly_nc)
         for year in range(start_year, end_year + 1):
-            yearly_datasets.append(_monthly_to_monthly_point(monthly_ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31")), lat, lon))
+            yearly_datasets.append(
+                _monthly_to_monthly_point(
+                    monthly_ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31")),
+                    lat,
+                    lon,
+                )
+            )
 
     # Concatenate yearly datasets into single timeseries
     era5_daily = xr.concat(yearly_datasets, dim="time").sortby("time")
@@ -503,7 +519,13 @@ def ensure_era5_file_for_gdir(gdir, use_daily: bool = False, overwrite: bool = F
     return str(out_era5)
 
 
-def ensure_era5_file_for_region(region, use_daily: bool = False, overwrite: bool = False, years_range:list[int] = _default_years, cache_path=_default_cache_path):
+def ensure_era5_file_for_region(
+    region,
+    use_daily: bool = False,
+    overwrite: bool = False,
+    years_range: list[int] = _default_years,
+    cache_path=_default_cache_path,
+):
     """Download ERA5 climate NetCDF file at the monthly resolution for a whole region.
 
     Args:
@@ -519,7 +541,7 @@ def ensure_era5_file_for_region(region, use_daily: bool = False, overwrite: bool
     # lat = float(gdir.cenlat)
     # lon = float(gdir.cenlon)
     start_year, end_year = years_range
-    years = list(map(str, range(start_year, end_year+1)))
+    years = list(map(str, range(start_year, end_year + 1)))
 
     if not use_daily:
         # Default lightweight monthly mode — no daily expansion
