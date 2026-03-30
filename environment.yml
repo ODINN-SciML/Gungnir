@@ -18,6 +18,7 @@ dependencies:
   - pyproj
   - pytables
   - pytest
+  - pytest-cov
   - python<3.12
   - rasterio
   - rioxarray
@@ -27,6 +28,7 @@ dependencies:
   - seaborn
   - shapely
   - xarray
+  - cdsapi
   - pip:
     - joblib
     - progressbar2
