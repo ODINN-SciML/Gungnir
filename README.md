@@ -25,13 +25,10 @@ make env
 
 Alternatively, if you just want to install the `gungnir` module, you can clone this repository and do
 ```
-pip install gungnir
-```
-or
-```
 pip install -e gungnir
 ```
-if you are working in developer mode.
+to install the package.
+Please be aware that there is another package available with `pip` named `gungnir`, so installing `pip install gungnir` will install a different package.
 
 ## Usage
 

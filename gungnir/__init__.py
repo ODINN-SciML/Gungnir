@@ -2,7 +2,7 @@
 Set of tools for the Gungnir
 """
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __all__ = ["utils", "preprocessing", "era5_climate"]
 
 from .utils import *
