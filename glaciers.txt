@@ -44,6 +44,9 @@ RGI60-11.03674;  # Saint Sorlin
 # France, Ecrins
 RGI60-11.03677;  # Meije
 RGI60-11.03684;  # Blanc
+RGI60-11.03676;  # Girose
+RGI60-11.03675,  # Mont de Lans
+RGI60-11.03760,  # Quirlies
 # France, Pyrénées
 RGI60-11.03232;  # Ossoue
 RGI60-11.03208;  # Aneto
