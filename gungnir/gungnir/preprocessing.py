@@ -121,8 +121,8 @@ def preprocessing_glaciers(
         tasks.compute_centerlines,
         tasks.initialize_flowlines,
         bedtopo.add_consensus_thickness,
-        millan22.thickness_to_gdir,
-        millan22.velocity_to_gdir,
+        millan22.millan_thickness_to_gdir,
+        millan22.millan_velocity_to_gdir,
         glathida.glathida_to_gdir,
     ]
 
