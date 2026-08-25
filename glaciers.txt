@@ -20,8 +20,8 @@ RGI60-11.02346;  # [no name] -> very small glacier near the Swiss border close t
 RGI60-11.00695;  # Glatschiu dil segnas
 RGI60-11.03005;  # Miage
 RGI60-11.03001;  # Brenva
-RGI60-11.01473;
-RGI60-11.00597;
+RGI60-11.01473;  # Laaser Ferner
+RGI60-11.00597;  # Übeltalferner
 
 # France, Mont Blanc
 RGI60-11.03643;  # Mer de Glace/Geant
