@@ -34,5 +34,5 @@ dependencies:
     - progressbar2
     - git+https://github.com/OGGM/pytest-mpl
     - git+https://github.com/OGGM/massbalance-sandbox
-    - oggm
+    - oggm>=1.6.3
     - -e ./gungnir
