@@ -41,12 +41,12 @@ RGI60-11.03651;  # Tré-la-Tête
 RGI60-11.03339;  # Glaciers
 # France, Belledonne
 RGI60-11.03674;  # Saint Sorlin
+RGI60-11.03760;  # Quirlies
 # France, Ecrins
 RGI60-11.03677;  # Meije
 RGI60-11.03684;  # Blanc
 RGI60-11.03676;  # Girose
-RGI60-11.03675,  # Mont de Lans
-RGI60-11.03760,  # Quirlies
+RGI60-11.03675;  # Mont de Lans
 # France, Pyrénées
 RGI60-11.03232;  # Ossoue
 RGI60-11.03208;  # Aneto
