@@ -47,7 +47,7 @@ ERA5_HOURLY_REQUEST_VARS = [
     "surface_net_thermal_radiation",
 ]
 
-_default_years = [1950, 2025]
+_default_years = [1940, 2025]
 
 
 def _get_cdsapi_client():
@@ -476,6 +476,12 @@ def ensure_era5_file_for_gdir(
         # Already downloaded for the whole region
         yearly_nc = cache_dir / f"era5_land_monthly_region_{region_id}.nc"
         monthly_ds = xr.open_dataset(yearly_nc)
+        available_years = pd.to_datetime(monthly_ds.time.values).year
+        assert {start_year, end_year}.issubset(set(available_years)), (
+            f"ERA5 monthly file {yearly_nc} does not contain the requested years "
+            f"{start_year}-{end_year}; available years are "
+            f"{available_years.min()}-{available_years.max()}"
+        )
         for year in range(start_year, end_year + 1):
             yearly_datasets.append(
                 _monthly_to_monthly_point(
