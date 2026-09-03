@@ -47,7 +47,7 @@ ERA5_HOURLY_REQUEST_VARS = [
     "surface_net_thermal_radiation",
 ]
 
-_default_years = [1940, 2025]
+_default_years = [1950, 2025]
 
 
 def _get_cdsapi_client():
