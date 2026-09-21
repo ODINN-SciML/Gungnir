@@ -19,7 +19,7 @@ dependencies:
   - pytables
   - pytest
   - pytest-cov
-  - python<3.12
+  - python=3.10
   - rasterio
   - rioxarray
   - salem
@@ -32,7 +32,7 @@ dependencies:
   - pip:
     - joblib
     - progressbar2
-    - git+https://github.com/OGGM/pytest-mpl
-    - git+https://github.com/OGGM/massbalance-sandbox
-    - oggm>=1.6.3
+    - git+https://github.com/OGGM/pytest-mpl@ae429213fd4684ed52927cb4abc7930822f4a0e2
+    - git+https://github.com/OGGM/massbalance-sandbox@947e7fcda103b2861e70d506d3ad6404e23de22d
+    - oggm==1.6.3
     - -e ./gungnir

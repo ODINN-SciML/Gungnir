@@ -36,6 +36,7 @@ def test_hash():
             print(f)
         if (
             f.endswith("log.txt")
+            or f.endswith("gungnir_manifest.toml")
             or f.endswith("geometries.pkl")
             or f.endswith("inversion_flowlines.pkl")
             or f.endswith("centerlines.pkl")
