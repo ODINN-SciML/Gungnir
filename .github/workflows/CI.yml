@@ -10,6 +10,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04 # Force ubuntu version since hash is version dependent
+    timeout-minutes: 40 # classic conda solver can hang for hours instead of failing; fail fast
     strategy:
       matrix:
         python-version: ["3.10"]
