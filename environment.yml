@@ -6,27 +6,28 @@ dependencies:
   - cartopy
   - configobj
   - dask
-  - geopandas
+  - geopandas=1.1.4
   - ipykernel
+  - libgdal-core=3.12.3
   - matplotlib
   - motionless
-  - netcdf4
-  - numpy<2.0
-  - pandas
+  - netcdf4=1.7.4
+  - numpy=1.26.4
+  - pandas=3.0.5
   - Pillow
   - pip
   - pyproj
-  - pytables
+  - pytables=3.11.1
   - pytest
   - pytest-cov
   - python<3.12
-  - rasterio
+  - rasterio=1.4.4
   - rioxarray
-  - salem
-  - scikit-image
+  - salem=0.3.11
+  - scikit-image=0.26.0
   - scipy
   - seaborn
-  - shapely
+  - shapely=2.1.2
   - xarray
   - cdsapi
   - pip:
