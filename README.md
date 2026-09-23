@@ -50,6 +50,16 @@ python gungnir/gungnir/preprocessing.py glaciers.txt --working_dir <working-dir>
 
 Note: if `<working-dir>` is set to `~/.ODINN` or `~/.ODINN/per_glacier`, Gungnir automatically normalizes it to `~/.ODINN/ODINN_prepro` to avoid path mismatches with Sleipnir.
 
+## Reproducibility
+
+The versions of `oggm`, `massbalance-sandbox` and `pytest-mpl` are pinned in `environment.yml`. When updating them, make sure to also regenerate and validate the preprocessed data.
+
+Each run writes a `gungnir_manifest.toml` file in the working directory. It records the options used (OGGM data URL, years, ERA5 mode and date) and the versions of the main packages, including the commit of `massbalance-sandbox`. It should be kept together with each release of the preprocessed data.
+
+By default, the level 2 OGGM glacier directories are downloaded from the `oggm_v1.6` files of the OGGM cluster. A different location can be given with `--base_url`, and Gungnir warns if the OGGM release in the URL is not the installed one.
+
+ERA5T is the preliminary version of ERA5 for the most recent months, which ECMWF can still update. For the monthly ERA5 files, Gungnir warns if the requested years include ERA5T months and lists them as `era5t_months` in the manifest. To generate a reproducible dataset, use `--years` to end before them.
+
 ## Climate Sources
 
 Gungnir prepares climate files compatible with Sleipnir for two independent sources:

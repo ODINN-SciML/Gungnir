@@ -1,14 +1,66 @@
 import sys
+import oggm
 from oggm import cfg, workflow, tasks, global_tasks
 from oggm.shop import bedtopo, millan22, glathida
 from MBsandbox.mbmod_daily_oneflowline import process_w5e5_data
-import json, os
+import json, os, re, warnings
 import argparse
+from datetime import datetime, timezone
+from importlib import metadata
 from pathlib import Path
 
 import gungnir.utils
 from gungnir.era5_climate import _default_years
 import gungnir.era5_climate
+
+# Preprocessed OGGM glacier directories (level 2) used as starting point
+_default_base_url = (
+    "https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/"
+)
+
+# Packages whose versions are recorded in the manifest
+_tracked_packages = ["oggm", "cdsapi", "xarray", "numpy", "pandas", "rasterio", "salem"]
+
+
+def _check_base_url_version(base_url):
+    """Warn if the OGGM release in `base_url` is not the installed one."""
+    match = re.search(r"oggm_v(\d+\.\d+)", base_url)
+    installed = ".".join(oggm.__version__.split(".")[:2])
+    if match and match.group(1) != installed:
+        warnings.warn(
+            f"base_url points to OGGM v{match.group(1)} files but OGGM "
+            f"{oggm.__version__} is installed."
+        )
+
+
+def _write_manifest(working_dir, **options):
+    """Write the options and package versions of this run to gungnir_manifest.toml."""
+    versions = {"gungnir": gungnir.__version__}
+    for name in _tracked_packages:
+        try:
+            versions[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            versions[name] = "not installed"
+    # MBsandbox always reports version 0.0.1, so we record the commit it was installed from
+    try:
+        direct_url = metadata.distribution("MBsandbox").read_text("direct_url.json")
+    except metadata.PackageNotFoundError:
+        direct_url = None
+    if direct_url:
+        versions["MBsandbox_commit"] = (
+            json.loads(direct_url).get("vcs_info", {}).get("commit_id")
+        )
+    options["created"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    with open(os.path.join(working_dir, "gungnir_manifest.toml"), "w") as f:
+        # json.dumps gives valid TOML for the strings, numbers, booleans and lists used
+        for key, value in options.items():
+            if value is not None:
+                f.write(f"{key} = {json.dumps(value)}\n")
+        f.write("\n[versions]\n")
+        for key, value in versions.items():
+            if value is not None:
+                f.write(f"{key} = {json.dumps(value)}\n")
 
 
 def _cds_credentials_available() -> bool:
@@ -56,6 +108,7 @@ def preprocessing_file(
     include_era5=None,
     use_daily=False,
     years=_default_years,
+    base_url=_default_base_url,
 ):
     """
     Preprocess glaciers directly from file
@@ -68,6 +121,7 @@ def preprocessing_file(
         include_era5=include_era5,
         use_daily=use_daily,
         years=years,
+        base_url=base_url,
     )
 
 
@@ -78,12 +132,14 @@ def preprocessing_glaciers(
     use_daily=False,
     years=_default_years,
     test=False,
+    base_url=_default_base_url,
 ):
     """
     Preprocessing of glaciers from a list of glaciers
 
     Arguments:
         - rgi_ids: List of glaciers and/or regions to process. E.g., rgi_ids = ['RGI60-11.00897', 'RGI60-11.01270']
+        - base_url: URL of the preprocessed OGGM glacier directories used as starting point.
     """
 
     # Check ERA5 capability if this is needed
@@ -95,7 +151,7 @@ def preprocessing_glaciers(
     working_dir = _normalize_working_dir(working_dir)
     os.makedirs(working_dir, exist_ok=True)
 
-    base_url = "https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/L1-L2_files/elev_bands/"
+    _check_base_url_version(base_url)
 
     print("Working directory:", working_dir)
 
@@ -129,7 +185,10 @@ def preprocessing_glaciers(
     for task in list_tasks:
         workflow.execute_entity_task(task, gdirs)
 
+    cache_path = gungnir.era5_climate._default_cache_path
+    era5t_months = None  # only checked for the monthly ERA5 files
     if include_era5 and not use_daily:
+        era5t_months = set()
         regions = []
         for gdir in gdirs:
             rgi_id = gdir.rgi_id
@@ -162,6 +221,18 @@ def preprocessing_glaciers(
                     geopotential_nc.exists()
                 ), f"The geopotential netcdf does not exist in {cache_path}"
 
+            # ERA5T is preliminary data that ECMWF can still update
+            months = gungnir.era5_climate.era5t_months_for_region(
+                region, years, cache_path=cache_path
+            )
+            if months:
+                warnings.warn(
+                    f"ERA5 data of region {region} contains preliminary ERA5T data "
+                    f"from {months[0]} to {months[-1]}, so the dataset may not be "
+                    "reproducible. Use --years to end before these months."
+                )
+            era5t_months.update(months)
+
     ### Then we retrieve all the necessary climate data ###
     rgi_paths = {}
     rgi_names = {}
@@ -193,6 +264,15 @@ def preprocessing_glaciers(
         json.dump(rgi_paths, f)
     with open(working_dir + "/rgi_names.json", "w") as f:
         json.dump(rgi_names, f)
+
+    _write_manifest(
+        working_dir,
+        base_url=base_url,
+        include_era5=bool(include_era5),
+        use_daily=use_daily,
+        years=list(years),
+        era5t_months=None if era5t_months is None else sorted(era5t_months),
+    )
 
     # Verify that glaciers have no missing data
     task_log = global_tasks.compile_task_log(
@@ -232,6 +312,12 @@ if __name__ == "__main__":
         nargs=2,
         help="Years for the climate data.",
     )
+    parser.add_argument(
+        "--base_url",
+        type=str,
+        default=_default_base_url,
+        help="URL of the preprocessed OGGM glacier directories.",
+    )
     args = parser.parse_args()
 
     glacier_file = args.glacier_file
@@ -246,4 +332,5 @@ if __name__ == "__main__":
         include_era5=include_era5,
         use_daily=use_daily,
         years=years,
+        base_url=args.base_url,
     )
