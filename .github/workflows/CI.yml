@@ -10,6 +10,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04 # Force ubuntu version since hash is version dependent
+    timeout-minutes: 40
     strategy:
       matrix:
         python-version: ["3.10"]
@@ -34,6 +35,18 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pytest --cov --cov-report xml
+      - name: DIAGNOSTIC - cpu, env and gridded_data stats
+        if: always()
+        shell: bash -l {0}
+        run: |
+          echo "===== CPU ====="
+          lscpu | grep -E "^Model name|^Vendor ID|^CPU family|^Model:|^Stepping" || true
+          echo "===== numpy runtime SIMD ====="
+          python -c "import numpy, json; from numpy.core import _multiarray_umath as m; print(numpy.__version__); print(json.dumps({k: v for k, v in m.__cpu_features__.items() if v}))"
+          echo "===== gridded_data.nc stats ====="
+          python diag_stats.py
+          echo "===== conda list ====="
+          conda list
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         env:
