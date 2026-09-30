@@ -38,6 +38,14 @@ def test_era5_file_generated():
         assert int(ds.attrs["hydro_yr_0"]) == 2020
         assert int(ds.attrs["hydro_yr_1"]) == 2020
 
+    # The manifest records the options and versions of the run
+    with open(os.path.join(working_dir, "gungnir_manifest.toml")) as f:
+        manifest = f.read()
+    assert 'base_url = "https://' in manifest
+    assert "years = [2020, 2020]" in manifest
+    assert "era5t_months = []" in manifest  # the sample only has consolidated ERA5
+    assert "[versions]" in manifest and "oggm = " in manifest
+
 
 if __name__ == "__main__":
     test_era5_file_generated()

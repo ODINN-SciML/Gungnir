@@ -524,6 +524,24 @@ def ensure_era5_file_for_gdir(
     return str(out_era5)
 
 
+def era5t_months_for_region(
+    region, years_range: list[int] = _default_years, cache_path=_default_cache_path
+) -> list[str]:
+    """Months ("YYYY-MM") of the monthly region file that are preliminary ERA5T data.
+
+    The CDS labels each month with an `expver` flag: "0001" is the consolidated ERA5
+    and "0005" is ERA5T, which ECMWF can still update.
+    """
+    monthly_nc = Path(cache_path) / "ERA5" / f"era5_land_monthly_region_{region}.nc"
+    with xr.open_dataset(monthly_nc) as ds:
+        ds = _normalize_era5_coords(ds)
+        if "expver" not in ds or ds["expver"].dims != ("time",):
+            return []
+        provisional = ds["expver"].values.astype(int) == 5
+        months = pd.to_datetime(ds["time"].values[provisional]).strftime("%Y-%m")
+    return [m for m in months if years_range[0] <= int(m[:4]) <= years_range[1]]
+
+
 def ensure_era5_file_for_region(
     region,
     use_daily: bool = False,
