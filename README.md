@@ -1,5 +1,6 @@
 [![Build Status](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ODINN-SciML/Gungnir/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/ODINN-SciML/Gungnir/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ODINN-SciML/Gungnir)
+[![PyPI version](https://img.shields.io/pypi/v/odinn-gungnir)](https://pypi.org/project/odinn-gungnir/)
 
 <img src="https://github.com/ODINN-SciML/Gungnir/blob/main/data/gungnir_logo.png" width="250">
 
@@ -112,3 +113,13 @@ https://cds.climate.copernicus.eu/how-to-api
 
 We use `black` to format the code of Gungnir.
 Please refer to the [Mass Balance Machine documentation](https://massbalancemachine.readthedocs.io/en/latest/contributing.html#formatting-the-code) for instructions on how to install the code formatter locally.
+
+## Publish package (for developers)
+
+The package can be published on PyPI by running:
+
+```bash
+python setup.py sdist
+twine upload dist/*
+```
+in a Python environment where twine has been installed with `pip install twine`.
