@@ -10,6 +10,13 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04 # Force ubuntu version since hash is version dependent
+    timeout-minutes: 40 # classic conda solver can hang for hours instead of failing; fail fast
+    env:
+      # GitHub runners mix CPUs with and without AVX512. numpy takes a different
+      # code path on each for slope and aspect (gradient, arctan2), which changes
+      # gridded_data.nc by 1 ULP of float32 and breaks test_hash. Force one path
+      # so the hash is stable. See #25.
+      NPY_DISABLE_CPU_FEATURES: "AVX512F"
     strategy:
       matrix:
         python-version: ["3.10"]

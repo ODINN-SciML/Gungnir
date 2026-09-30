@@ -25,13 +25,11 @@ make env
 
 Alternatively, if you just want to install the `gungnir` module, you can clone this repository and do
 ```
-pip install gungnir
+pip install -e .
 ```
-or
-```
-pip install -e gungnir
-```
-if you are working in developer mode.
+to install the package.
+
+Note: the PyPI distribution name for this package is `odinn-gungnir` (not `gungnir`). There is another, unrelated package on PyPI named `gungnir`, so running `pip install gungnir` will install that different package instead of this one. Once published, this project should be installed with `pip install odinn-gungnir`.
 
 ## Usage
 
@@ -39,13 +37,13 @@ We included an example notebook of how to retrieve data using OGGM data in `note
 
 You can also use Gungnir directly from the terminal. If you are using the remote OGGM cluster as working directory, in a new terminal after doing `conda activate oggm_env_gungnir`, proceed with
 ```bash
-python gungnir/gungnir/preprocessing.py glaciers.txt
+python gungnir/preprocessing.py glaciers.txt
 ```
 If no working directory is provided, data is written to `~/.ODINN/ODINN_prepro` (the default location expected by Sleipnir).
 
 You can still provide any explicit local/custom output directory:
 ```bash
-python gungnir/gungnir/preprocessing.py glaciers.txt --working_dir <working-dir>
+python gungnir/preprocessing.py glaciers.txt --working_dir <working-dir>
 ```
 
 Note: if `<working-dir>` is set to `~/.ODINN` or `~/.ODINN/per_glacier`, Gungnir automatically normalizes it to `~/.ODINN/ODINN_prepro` to avoid path mismatches with Sleipnir.
@@ -72,7 +70,7 @@ Monthly data is:
 To enable hourly→daily aggregation, use the `use_daily` option:
 
 ```python
-python gungnir/gungnir/preprocessing.py glaciers.txt --working_dir <working-dir> --use_daily
+python gungnir/preprocessing.py glaciers.txt --working_dir <working-dir> --use_daily
 ```
 
 Hourly data is downloaded from `reanalysis-era5-land` (24 timesteps/day) and resampled to daily.
