@@ -11,6 +11,7 @@ from pathlib import Path
 
 import gungnir.utils
 import gungnir.dems
+import gungnir.outline
 from gungnir.era5_climate import _default_years
 import gungnir.era5_climate
 
@@ -192,6 +193,7 @@ def preprocessing_glaciers(
         millan22.millan_velocity_to_gdir,
         glathida.glathida_to_gdir,
         gungnir.dems.copdem90_to_gdir,
+        gungnir.outline.outline_date_to_gdir,
     ]
 
     for task in list_tasks:
