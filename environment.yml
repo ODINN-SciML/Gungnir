@@ -34,5 +34,7 @@ dependencies:
     - progressbar2
     - git+https://github.com/OGGM/pytest-mpl@ae429213fd4684ed52927cb4abc7930822f4a0e2
     - git+https://github.com/OGGM/massbalance-sandbox@947e7fcda103b2861e70d506d3ad6404e23de22d
-    - oggm==1.6.3
+    # Temporary: oggm 1.6.3 plus the fix for millan_velocity_to_gdir with
+    # add_error=True (OGGM/oggm#2021). Go back to the release when it is out.
+    - git+https://github.com/JordiBolibar/oggm@fix/millan22-velocity-add-error-1.6.3
     - -e .
