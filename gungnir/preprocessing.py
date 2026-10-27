@@ -10,6 +10,8 @@ from importlib import metadata
 from pathlib import Path
 
 import gungnir.utils
+import gungnir.dems
+import gungnir.outline
 from gungnir.era5_climate import _default_years
 import gungnir.era5_climate
 
@@ -19,7 +21,17 @@ _default_base_url = (
 )
 
 # Packages whose versions are recorded in the manifest
-_tracked_packages = ["oggm", "cdsapi", "xarray", "numpy", "pandas", "rasterio", "salem"]
+_tracked_packages = [
+    "oggm",
+    "cdsapi",
+    "xarray",
+    "numpy",
+    "pandas",
+    "rasterio",
+    "salem",
+    "shapely",
+    "geopandas",
+]
 
 
 def _check_base_url_version(base_url):
@@ -180,10 +192,15 @@ def preprocessing_glaciers(
         millan22.millan_thickness_to_gdir,
         millan22.millan_velocity_to_gdir,
         glathida.glathida_to_gdir,
+        gungnir.dems.copdem90_to_gdir,
+        gungnir.outline.outline_date_to_gdir,
     ]
 
     for task in list_tasks:
-        workflow.execute_entity_task(task, gdirs)
+        # The velocity is written with its per-pixel error bands (millan_err_vx, millan_err_vy),
+        # which Sleipnir reads as the uncertainty of the velocity
+        kwargs = {"add_error": True} if task is millan22.millan_velocity_to_gdir else {}
+        workflow.execute_entity_task(task, gdirs, **kwargs)
 
     cache_path = gungnir.era5_climate._default_cache_path
     era5t_months = None  # only checked for the monthly ERA5 files
