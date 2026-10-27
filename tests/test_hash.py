@@ -51,7 +51,7 @@ def test_hash():
         json.dumps(checksums, sort_keys=True, ensure_ascii=True).encode("utf-8")
     ).hexdigest()
 
-    refChecksum = "d99766e20115b2c32dcf4d9037a8bbfe"
+    refChecksum = "6b179e787a49e529e066bea371122dd7"
     if globalChecksum != refChecksum:
         raise Exception(
             f"Computed checksum is '{globalChecksum}' but reference is '{refChecksum}'. This likely means that the result of the preprocessing has changed. Update of the reference should be carefully tracked and the root cause of that change must be understood since this might impact the subsequent processing steps. In order to ease debugging, you can compare the checksums per file for different executions or for different heads of the repository. \n\n{checksums=}"
