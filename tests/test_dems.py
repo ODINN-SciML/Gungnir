@@ -40,8 +40,7 @@ def test_dates():
 
 def test_acquisitions_of_a_tile(tmp_path):
     kml = tmp_path / "tile_SRC.kml"
-    kml.write_text(
-        """<?xml version="1.0" encoding="UTF-8"?>
+    kml.write_text("""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
   <Placemark><name>acq_1</name>
     <description>TanDEM-X acquisition
@@ -51,8 +50,7 @@ def test_acquisitions_of_a_tile(tmp_path):
     </coordinates></LinearRing></outerBoundaryIs></Polygon>
   </Placemark>
   <Placemark><name>not_an_acquisition</name><description>mosaic</description></Placemark>
-</Document></kml>"""
-    )
+</Document></kml>""")
     acquisitions = list(dems._acquisitions([str(kml)]))
     assert len(acquisitions) == 1
     date, footprint = acquisitions[0]
